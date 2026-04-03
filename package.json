@@ -10,13 +10,14 @@
     "build:web": "expo export --platform web"
   },
   "dependencies": {
+    "@expo/metro-runtime": "~4.0.0",
     "expo": "~54.0.0",
+    "firebase": "^11.0.0",
     "react": "18.3.1",
+    "react-dom": "18.3.1",
     "react-native": "0.76.0",
     "react-native-web": "~0.19.13",
-    "react-dom": "18.3.1",
-    "@expo/metro-runtime": "~4.0.0",
-    "firebase": "^11.0.0"
+    "xlsx": "^0.18.5"
   },
   "private": true
 }
