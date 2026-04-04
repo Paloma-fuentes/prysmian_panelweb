@@ -94,6 +94,33 @@ export async function rechazarDevolucion(solicitudId) {
   });
 }
 
+// Retorno por producto equivocado: revierte el descuento de stock
+export async function retornarSolicitud(solicitudId, { materialId, producto, cantidad, usuario }) {
+  const batch = writeBatch(db);
+  batch.update(doc(db, COL, solicitudId), {
+    estado: 'retornado',
+    fechaActualizacion: serverTimestamp(),
+  });
+  if (materialId) {
+    batch.update(doc(db, MAT, materialId), {
+      stock: increment(Number(cantidad)),
+      actualizadoEn: serverTimestamp(),
+    });
+  }
+  batch.set(doc(collection(db, HIST)), {
+    tipo: 'devolucion',
+    solicitudId,
+    materialId: materialId || '',
+    producto,
+    cantidad: Number(cantidad),
+    maquina: '',
+    usuario: usuario || '',
+    estado: 'retornado',
+    fecha: serverTimestamp(),
+  });
+  await batch.commit();
+}
+
 export async function getSolicitudes(limite = 200) {
   const q = query(collection(db, COL), orderBy('fechaCreacion', 'desc'), limit(limite));
   const snap = await getDocs(q);
