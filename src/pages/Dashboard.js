@@ -24,6 +24,7 @@ export default function Dashboard({ navegar }) {
         <StatCard titulo="Bajo Stock" valor={kpis.bajoStock} icono="⚠️" color="#f59e0b" alerta={kpis.bajoStock > 0} onClick={navegar ? () => navegar('inventario', 'bajoStock') : undefined} />
         <StatCard titulo="Críticos" valor={kpis.criticos} icono="🚨" color="#dc2626" alerta={kpis.criticos > 0} onClick={navegar ? () => navegar('inventario', 'criticos') : undefined} />
         <StatCard titulo="Sin Rotación" valor={kpis.sinRotacion} icono="🔒" color="#8b5cf6" sub="+90 días sin movimiento" onClick={navegar ? () => navegar('inventario', 'sinRotacion') : undefined} />
+        <StatCard titulo="Solicitudes Pendientes" valor={kpis.solicitudesPendientes} icono="📤" color="#F4821F" alerta={kpis.solicitudesPendientes > 0} sub="Por entregar o aprobar" onClick={navegar ? () => navegar('solicitudes') : undefined} />
       </div>
 
       <div style={s.row2}>

@@ -45,14 +45,15 @@ export default function Inventario({ filtroInicial = 'todos' }) {
   }
 
   function abrirCrear() { setForm(VACIO); setModal('crear'); }
-  function abrirEditar(m) { setForm({ descripcion: m.descripcion, ubicacion: m.ubicacion, stock: m.stock, puntoReorden: m.puntoReorden, codigoSAP: m.codigoSAP || '', solicitado: m.solicitado || false }); setEditId(m.id); setModal('editar'); }
+  function abrirEditar(m) { setForm({ descripcion: m.descripcion, ubicacion: m.ubicacion, stock: m.stock, puntoReorden: m.puntoReorden, codigoSAP: m.codigoSAP || '', solicitado: m.solicitado || false, _stockAnterior: m.stock }); setEditId(m.id); setModal('editar'); }
 
   async function guardar() {
     setGuardando(true);
     try {
-      const datos = { ...form, stock: Number(form.stock), puntoReorden: Number(form.puntoReorden) };
+      const { _stockAnterior, ...resto } = form;
+      const datos = { ...resto, stock: Number(form.stock), puntoReorden: Number(form.puntoReorden) };
       if (modal === 'crear') await crearMaterial(datos);
-      else await actualizarMaterial(editId, datos);
+      else await actualizarMaterial(editId, datos, { stockAnterior: _stockAnterior, usuario: 'Admin' });
       setModal(null);
       cargar();
     } finally { setGuardando(false); }
@@ -60,7 +61,7 @@ export default function Inventario({ filtroInicial = 'todos' }) {
 
   async function eliminar(id, desc) {
     if (!window.confirm(`¿Eliminar "${desc}"?`)) return;
-    await eliminarMaterial(id);
+    await eliminarMaterial(id, { descripcion: desc, usuario: 'Admin' });
     cargar();
   }
 

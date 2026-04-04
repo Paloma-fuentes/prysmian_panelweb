@@ -3,6 +3,7 @@ import React from 'react';
 const MENU = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
   { id: 'inventario', label: 'Inventario', icon: '📦' },
+  { id: 'solicitudes', label: 'Solicitudes', icon: '📤' },
   { id: 'historial', label: 'Historial', icon: '📋' },
   { id: 'importar', label: 'Importar Excel', icon: '⬆️' },
 ];

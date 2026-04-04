@@ -54,18 +54,46 @@ export async function crearMaterial(datos) {
   });
 }
 
-export async function actualizarMaterial(id, datos) {
+export async function actualizarMaterial(id, datos, { stockAnterior = null, usuario = 'Admin' } = {}) {
   const bajoStock = datos.puntoReorden > 0 && datos.stock <= datos.puntoReorden;
-  await updateDoc(doc(db, COL, id), {
+  const batch = writeBatch(db);
+  batch.update(doc(db, COL, id), {
     ...datos,
     bajoStock,
     esCritico: datos.solicitado && datos.stock === 0,
     actualizadoEn: serverTimestamp(),
   });
+  // Registrar en historial si cambió el stock
+  if (stockAnterior !== null && Number(stockAnterior) !== Number(datos.stock)) {
+    const diff = Number(datos.stock) - Number(stockAnterior);
+    batch.set(doc(collection(db, 'historial')), {
+      tipo: diff > 0 ? 'ingreso' : 'ajuste',
+      materialId: id,
+      producto: datos.descripcion,
+      cantidad: Math.abs(diff),
+      maquina: '',
+      usuario,
+      estado: 'ajuste_manual',
+      fecha: serverTimestamp(),
+    });
+  }
+  await batch.commit();
 }
 
-export async function eliminarMaterial(id) {
-  await deleteDoc(doc(db, COL, id));
+export async function eliminarMaterial(id, { descripcion = '', usuario = 'Admin' } = {}) {
+  const batch = writeBatch(db);
+  batch.delete(doc(db, COL, id));
+  batch.set(doc(collection(db, 'historial')), {
+    tipo: 'eliminacion',
+    materialId: id,
+    producto: descripcion,
+    cantidad: 0,
+    maquina: '',
+    usuario,
+    estado: 'eliminado',
+    fecha: serverTimestamp(),
+  });
+  await batch.commit();
 }
 
 export async function ajustarStock(id, cantidad, tipo, maquina, usuario) {

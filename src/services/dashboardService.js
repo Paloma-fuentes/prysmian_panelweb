@@ -1,10 +1,11 @@
-import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit, getCountFromServer } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 export async function getKPIs() {
-  const [matSnap, histSnap] = await Promise.all([
+  const [matSnap, histSnap, solSnap] = await Promise.all([
     getDocs(collection(db, 'materiales')),
     getDocs(query(collection(db, 'historial'), orderBy('fecha', 'desc'), limit(500))),
+    getDocs(query(collection(db, 'solicitudes'), where('estado', '==', 'pendiente'))),
   ]);
 
   const materiales = matSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -58,6 +59,7 @@ export async function getKPIs() {
     sinStock,
     bajoStock,
     criticos,
+    solicitudesPendientes: solSnap.docs.length,
     topProducto: topProducto ? { nombre: topProducto[0], cantidad: topProducto[1] } : null,
     topMaquinas,
     sinRotacion: sinRotacion.length,
