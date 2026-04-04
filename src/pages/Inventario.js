@@ -3,11 +3,11 @@ import { getMateriales, crearMaterial, actualizarMaterial, eliminarMaterial, bus
 
 const VACIO = { descripcion: '', ubicacion: '', stock: 0, puntoReorden: 0, codigoSAP: '', solicitado: false };
 
-export default function Inventario() {
+export default function Inventario({ filtroInicial = 'todos' }) {
   const [materiales, setMateriales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
-  const [filtro, setFiltro] = useState('todos');
+  const [filtro, setFiltro] = useState(filtroInicial);
   const [modal, setModal] = useState(null); // null | 'crear' | 'editar'
   const [form, setForm] = useState(VACIO);
   const [editId, setEditId] = useState(null);
@@ -15,11 +15,18 @@ export default function Inventario() {
   const [pag, setPag] = useState(0);
   const POR_PAG = 50;
 
+  useEffect(() => { setFiltro(filtroInicial); }, [filtroInicial]);
   useEffect(() => { cargar(); }, [filtro]);
 
   async function cargar() {
     setLoading(true);
-    const filtros = filtro === 'bajoStock' ? { bajoStock: true } : filtro === 'sinStock' ? { sinStock: true } : {};
+    const filtros =
+      filtro === 'bajoStock' ? { bajoStock: true } :
+      filtro === 'sinStock' ? { sinStock: true } :
+      filtro === 'criticos' ? { criticos: true } :
+      filtro === 'conStock' ? { conStock: true } :
+      filtro === 'sinRotacion' ? { sinRotacion: true } :
+      {};
     const data = await getMateriales(filtros);
     setMateriales(data);
     setLoading(false);
@@ -71,7 +78,14 @@ export default function Inventario() {
       <div style={s.toolbar}>
         <input style={s.search} placeholder="Buscar descripción, código SAP, ubicación..." value={busqueda} onChange={handleBuscar} />
         <div style={s.filtros}>
-          {[['todos', 'Todos'], ['bajoStock', '⚠️ Bajo stock'], ['sinStock', '❌ Sin stock']].map(([val, lbl]) => (
+          {[
+            ['todos', 'Todos'],
+            ['conStock', '✅ Con stock'],
+            ['bajoStock', '⚠️ Bajo stock'],
+            ['sinStock', '❌ Sin stock'],
+            ['criticos', '🚨 Críticos'],
+            ['sinRotacion', '🔒 Sin rotación'],
+          ].map(([val, lbl]) => (
             <button key={val} style={{ ...s.filtroBtn, ...(filtro === val ? s.filtroBtnActivo : {}) }} onClick={() => setFiltro(val)}>{lbl}</button>
           ))}
         </div>

@@ -13,6 +13,25 @@ export async function getMateriales(filtros = {}) {
     q = query(q, where('bajoStock', '==', true));
   } else if (filtros.sinStock) {
     q = query(q, where('stock', '==', 0));
+  } else if (filtros.criticos) {
+    q = query(q, where('esCritico', '==', true));
+  } else if (filtros.conStock) {
+    q = query(q, where('stock', '>', 0), orderBy('stock'));
+  } else if (filtros.sinRotacion) {
+    // Obtiene materiales con stock sin movimiento en 90 días
+    const [matSnap, histSnap] = await Promise.all([
+      getDocs(query(collection(db, COL), where('stock', '>', 0))),
+      getDocs(collection(db, 'historial')),
+    ]);
+    const hace90 = new Date();
+    hace90.setDate(hace90.getDate() - 90);
+    const movidos = new Set(
+      histSnap.docs
+        .map(d => d.data())
+        .filter(h => { const f = h.fecha?.toDate ? h.fecha.toDate() : new Date(h.fecha); return f >= hace90; })
+        .map(h => h.producto)
+    );
+    return matSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(m => !movidos.has(m.descripcion));
   } else {
     q = query(q, orderBy('descripcion'));
   }

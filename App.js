@@ -9,13 +9,19 @@ const PAGINAS = { dashboard: Dashboard, inventario: Inventario, historial: Histo
 
 export default function App() {
   const [pagina, setPagina] = useState('dashboard');
+  const [filtroInicial, setFiltroInicial] = useState('todos');
   const Pagina = PAGINAS[pagina] || Dashboard;
+
+  function navegar(nuevaPagina, filtro = 'todos') {
+    setFiltroInicial(filtro);
+    setPagina(nuevaPagina);
+  }
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#0f172a', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
       <Sidebar pagina={pagina} setPagina={setPagina} />
       <main style={{ flex: 1, overflowY: 'auto', maxHeight: '100vh', background: '#0f172a' }}>
-        <Pagina />
+        <Pagina navegar={navegar} filtroInicial={filtroInicial} />
       </main>
     </div>
   );

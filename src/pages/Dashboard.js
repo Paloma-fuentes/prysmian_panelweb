@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import StatCard from '../components/StatCard';
 import { getKPIs } from '../services/dashboardService';
 
-export default function Dashboard() {
+export default function Dashboard({ navegar }) {
   const [kpis, setKpis] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -18,12 +18,12 @@ export default function Dashboard() {
 
       {/* KPIs principales */}
       <div style={s.grid}>
-        <StatCard titulo="Total Productos" valor={kpis.totalProductos} icono="📦" color="#6366f1" />
-        <StatCard titulo="Con Stock" valor={kpis.conStock} icono="✅" color="#10b981" />
-        <StatCard titulo="Sin Stock" valor={kpis.sinStock} icono="❌" color="#ef4444" alerta={kpis.sinStock > 0} />
-        <StatCard titulo="Bajo Stock" valor={kpis.bajoStock} icono="⚠️" color="#f59e0b" alerta={kpis.bajoStock > 0} />
-        <StatCard titulo="Críticos" valor={kpis.criticos} icono="🚨" color="#dc2626" alerta={kpis.criticos > 0} />
-        <StatCard titulo="Sin Rotación" valor={kpis.sinRotacion} icono="🔒" color="#8b5cf6" sub="+90 días sin movimiento" />
+        <StatCard titulo="Total Productos" valor={kpis.totalProductos} icono="📦" color="#6366f1" onClick={navegar ? () => navegar('inventario', 'todos') : undefined} />
+        <StatCard titulo="Con Stock" valor={kpis.conStock} icono="✅" color="#10b981" onClick={navegar ? () => navegar('inventario', 'conStock') : undefined} />
+        <StatCard titulo="Sin Stock" valor={kpis.sinStock} icono="❌" color="#ef4444" alerta={kpis.sinStock > 0} onClick={navegar ? () => navegar('inventario', 'sinStock') : undefined} />
+        <StatCard titulo="Bajo Stock" valor={kpis.bajoStock} icono="⚠️" color="#f59e0b" alerta={kpis.bajoStock > 0} onClick={navegar ? () => navegar('inventario', 'bajoStock') : undefined} />
+        <StatCard titulo="Críticos" valor={kpis.criticos} icono="🚨" color="#dc2626" alerta={kpis.criticos > 0} onClick={navegar ? () => navegar('inventario', 'criticos') : undefined} />
+        <StatCard titulo="Sin Rotación" valor={kpis.sinRotacion} icono="🔒" color="#8b5cf6" sub="+90 días sin movimiento" onClick={navegar ? () => navegar('inventario', 'sinRotacion') : undefined} />
       </div>
 
       <div style={s.row2}>
