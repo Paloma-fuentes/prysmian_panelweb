@@ -60,7 +60,7 @@ export default function Historial() {
 }
 
 const s = {
-  container: { padding: 28, color: '#f9fafb' },
+  container: { padding: 28, color: '#f9fafb', background: '#0f172a', minHeight: '100vh' },
   titulo: { fontSize: 24, fontWeight: 800, margin: '0 0 20px' },
   toolbar: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' },
   filtroBtn: { padding: '7px 14px', borderRadius: 6, border: '1px solid #374151', background: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 13 },

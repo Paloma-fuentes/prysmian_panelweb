@@ -161,7 +161,7 @@ function Campo({ label, value, onChange, type = 'text' }) {
 }
 
 const s = {
-  container: { padding: 28, color: '#f9fafb' },
+  container: { padding: 28, color: '#f9fafb', background: '#0f172a', minHeight: '100vh' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   titulo: { fontSize: 24, fontWeight: 800, margin: 0 },
   toolbar: { display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' },
@@ -171,10 +171,10 @@ const s = {
   filtroBtnActivo: { background: '#F4821F', borderColor: '#F4821F', color: '#fff' },
   total: { color: '#6b7280', fontSize: 13 },
   loading: { color: '#9ca3af', padding: 40, textAlign: 'center' },
-  tableWrap: { overflowX: 'auto' },
-  table: { width: '100%', borderCollapse: 'collapse' },
-  th: { textAlign: 'left', color: '#6b7280', fontSize: 12, fontWeight: 600, padding: '10px 12px', borderBottom: '1px solid #374151', whiteSpace: 'nowrap' },
-  td: { padding: '9px 12px', fontSize: 13, color: '#d1d5db', borderBottom: '1px solid #1f2937' },
+  tableWrap: { overflowX: 'auto', background: '#0f172a', borderRadius: 8 },
+  table: { width: '100%', borderCollapse: 'collapse', background: '#0f172a' },
+  th: { textAlign: 'left', color: '#6b7280', fontSize: 12, fontWeight: 600, padding: '10px 12px', borderBottom: '1px solid #374151', whiteSpace: 'nowrap', background: '#0f172a' },
+  td: { padding: '9px 12px', fontSize: 13, color: '#d1d5db', borderBottom: '1px solid #1f2937', background: '#0f172a' },
   trPar: { background: '#111827' },
   badge: { padding: '2px 8px', borderRadius: 4, color: '#fff', fontSize: 11, fontWeight: 700 },
   btnEdit: { background: 'none', border: 'none', cursor: 'pointer', marginRight: 6, fontSize: 15 },

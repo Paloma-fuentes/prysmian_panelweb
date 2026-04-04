@@ -132,7 +132,7 @@ function tipoBadge(tipo) {
 }
 
 const s = {
-  container: { padding: 28, color: '#f9fafb' },
+  container: { padding: 28, color: '#f9fafb', background: '#0f172a', minHeight: '100vh' },
   loading: { padding: 40, color: '#9ca3af', textAlign: 'center', fontSize: 16 },
   titulo: { fontSize: 24, fontWeight: 800, color: '#f9fafb', marginBottom: 24, marginTop: 0 },
   grid: { display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 24 },
