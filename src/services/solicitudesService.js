@@ -1,5 +1,5 @@
 import {
-  collection, doc, getDocs, addDoc, updateDoc,
+  collection, doc, getDocs, addDoc, updateDoc, deleteDoc,
   query, orderBy, limit, serverTimestamp, increment, writeBatch,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -97,5 +97,27 @@ export async function rechazarDevolucion(solicitudId) {
 export async function getSolicitudes(limite = 200) {
   const q = query(collection(db, COL), orderBy('fechaCreacion', 'desc'), limit(limite));
   const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+export async function editarSolicitud(id, datos) {
+  await updateDoc(doc(db, COL, id), { ...datos, fechaActualizacion: serverTimestamp() });
+}
+
+export async function eliminarSolicitud(id) {
+  await deleteDoc(doc(db, COL, id));
+}
+
+// Trae máquinas únicas desde historial
+export async function getMaquinas() {
+  const snap = await getDocs(collection(db, 'historial'));
+  const set = new Set();
+  snap.docs.forEach(d => { const m = d.data().maquina; if (m && m !== 'N/A') set.add(m); });
+  return Array.from(set).sort();
+}
+
+// Trae usuarios del panel desde colección 'usuarios'
+export async function getUsuariosPanel() {
+  const snap = await getDocs(collection(db, 'usuarios'));
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
