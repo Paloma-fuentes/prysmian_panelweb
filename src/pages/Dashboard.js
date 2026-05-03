@@ -35,10 +35,17 @@ export default function Dashboard({ navegar }) {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
 
-  useEffect(() => {
+  function cargar() {
     getKPIs()
       .then(d => { setKpis(d); setLoading(false); })
       .catch(e => { setError('Error cargando datos: ' + e.message); setLoading(false); });
+  }
+
+  useEffect(() => {
+    cargar();
+    // Refrescar cada 60s para mostrar cambios de la app móvil
+    const interval = setInterval(cargar, 60_000);
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) return (

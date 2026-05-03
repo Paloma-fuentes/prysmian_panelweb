@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { getSolicitudesCompra, actualizarEstado, eliminarSolicitudCompra } from '../services/solicitudesCompraService';
+import { getSolicitudesCompra, escucharSolicitudesCompra, actualizarEstado, eliminarSolicitudCompra } from '../services/solicitudesCompraService';
 import { C, card } from '../theme';
 
 const ESTADOS = ['en espera', 'en revision', 'pr realizada', 'solicitud completada'];
@@ -41,12 +41,19 @@ export default function SolicitudesCompra() {
   const [detalle, setDetalle]         = useState(null);
   const [cambiando, setCambiando]     = useState(null);
 
-  useEffect(() => { cargar(); }, []);
+  // Tiempo real — se actualiza cuando la app móvil hace cambios
+  useEffect(() => {
+    setLoading(true);
+    const unsub = escucharSolicitudesCompra(data => {
+      setSolicitudes(data);
+      setLoading(false);
+    });
+    return () => unsub();
+  }, []);
 
   async function cargar() {
-    setLoading(true);
+    // Usado solo al cambiar estado/eliminar para forzar re-render inmediato
     setSolicitudes(await getSolicitudesCompra());
-    setLoading(false);
   }
 
   const solicitudesNuevas = useMemo(() => {

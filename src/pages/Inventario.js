@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { C } from '../theme';
-import { getMateriales, crearMaterial, actualizarMaterial, eliminarMaterial, buscarMateriales } from '../services/inventarioService';
+import { getMateriales, escucharMateriales, crearMaterial, editarMaterial, eliminarMaterial, buscarMateriales } from '../services/inventarioService';
 
 const VACIO = { descripcion: '', ubicacion: '', stock: 0, puntoReorden: 0, codigoSAP: '', solicitado: false };
 
@@ -17,17 +17,30 @@ export default function Inventario({ filtroInicial = 'todos' }) {
   const POR_PAG = 50;
 
   useEffect(() => { setFiltro(filtroInicial); }, [filtroInicial]);
-  useEffect(() => { cargar(); }, [filtro]);
+
+  // Filtro "todos" → tiempo real; filtros especiales → lectura puntual
+  useEffect(() => {
+    if (filtro === 'todos') {
+      setLoading(true);
+      const unsub = escucharMateriales(data => {
+        setMateriales(data);
+        setLoading(false);
+        setPag(0);
+      });
+      return () => unsub();
+    } else {
+      cargar();
+    }
+  }, [filtro]);
 
   async function cargar() {
     setLoading(true);
     const filtros =
-      filtro === 'bajoStock' ? { bajoStock: true } :
-      filtro === 'sinStock' ? { sinStock: true } :
-      filtro === 'criticos' ? { criticos: true } :
-      filtro === 'conStock' ? { conStock: true } :
-      filtro === 'sinRotacion' ? { sinRotacion: true } :
-      {};
+      filtro === 'bajoStock'   ? { bajoStock: true }   :
+      filtro === 'sinStock'    ? { sinStock: true }     :
+      filtro === 'criticos'    ? { criticos: true }     :
+      filtro === 'conStock'    ? { conStock: true }     :
+      filtro === 'sinRotacion' ? { sinRotacion: true }  : {};
     const data = await getMateriales(filtros);
     setMateriales(data);
     setLoading(false);
@@ -54,7 +67,7 @@ export default function Inventario({ filtroInicial = 'todos' }) {
       const { _stockAnterior, ...resto } = form;
       const datos = { ...resto, stock: Number(form.stock), puntoReorden: Number(form.puntoReorden) };
       if (modal === 'crear') await crearMaterial(datos);
-      else await actualizarMaterial(editId, datos, { stockAnterior: _stockAnterior, usuario: 'Admin' });
+      else await editarMaterial(editId, { ...datos, bajoStock: Number(datos.stock) <= Number(datos.puntoReorden) });
       setModal(null);
       cargar();
     } finally { setGuardando(false); }

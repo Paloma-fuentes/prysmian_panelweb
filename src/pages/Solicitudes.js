@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { C } from '../theme';
 import {
-  getSolicitudes, crearSolicitud, editarSolicitud, eliminarSolicitud,
+  getSolicitudes, escucharSolicitudes, crearSolicitud, editarSolicitud, eliminarSolicitud,
   entregarSolicitud, cancelarSolicitud, aprobarDevolucion, rechazarDevolucion,
   retornarSolicitud, getUsuariosPanel,
 } from '../services/solicitudesService';
@@ -76,15 +76,18 @@ export default function Solicitudes() {
   const [usuarios, setUsuarios] = useState([]);
 
   useEffect(() => {
-    cargar();
+    setLoading(true);
+    const unsub = escucharSolicitudes(data => {
+      setSolicitudes(data);
+      setLoading(false);
+    });
     getUsuariosPanel().then(setUsuarios);
+    return () => unsub();
   }, []);
 
   async function cargar() {
-    setLoading(true);
     const data = await getSolicitudes(300);
     setSolicitudes(data);
-    setLoading(false);
   }
 
   function abrirCrear() {
