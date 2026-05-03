@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { C } from '../theme';
 import { getMateriales, crearMaterial, actualizarMaterial, eliminarMaterial, buscarMateriales } from '../services/inventarioService';
 
 const VACIO = { descripcion: '', ubicacion: '', stock: 0, puntoReorden: 0, codigoSAP: '', solicitado: false };
@@ -71,7 +72,10 @@ export default function Inventario({ filtroInicial = 'todos' }) {
   return (
     <div style={s.container}>
       <div style={s.header}>
-        <h1 style={s.titulo}>Inventario</h1>
+        <div>
+          <div style={s.titulo}>Inventario de Materiales</div>
+          <div style={s.tituloSub}>Catálogo completo de repuestos</div>
+        </div>
         <button style={s.btnPrimary} onClick={abrirCrear}>+ Nuevo Material</button>
       </div>
 
@@ -168,41 +172,42 @@ export default function Inventario({ filtroInicial = 'todos' }) {
 function Campo({ label, value, onChange, type = 'text' }) {
   return (
     <div style={{ marginBottom: 12 }}>
-      <label style={{ display: 'block', color: '#9ca3af', fontSize: 12, marginBottom: 4 }}>{label}</label>
-      <input style={{ width: '100%', background: '#111827', border: '1px solid #374151', borderRadius: 6, padding: '8px 10px', color: '#f9fafb', fontSize: 14, boxSizing: 'border-box' }}
+      <label style={{ display: 'block', color: C.textSecondary, fontSize: 12, marginBottom: 4, fontWeight: 600 }}>{label}</label>
+      <input style={{ width: '100%', background: C.background, border: `1px solid ${C.border}`, borderRadius: 6, padding: '8px 10px', color: C.text, fontSize: 14, boxSizing: 'border-box', outline: 'none' }}
         type={type} value={value} onChange={e => onChange(e.target.value)} />
     </div>
   );
 }
 
 const s = {
-  container: { padding: 28, color: '#f9fafb', background: '#0f172a', minHeight: '100vh' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  titulo: { fontSize: 24, fontWeight: 800, margin: 0 },
-  toolbar: { display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' },
-  search: { flex: 1, minWidth: 200, background: '#1f2937', border: '1px solid #374151', borderRadius: 8, padding: '9px 14px', color: '#f9fafb', fontSize: 14 },
-  filtros: { display: 'flex', gap: 6 },
-  filtroBtn: { padding: '7px 14px', borderRadius: 6, border: '1px solid #374151', background: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 13 },
-  filtroBtnActivo: { background: '#F4821F', borderColor: '#F4821F', color: '#fff' },
-  total: { color: '#6b7280', fontSize: 13 },
-  loading: { color: '#9ca3af', padding: 40, textAlign: 'center' },
-  tableWrap: { overflowX: 'auto', background: '#0f172a', borderRadius: 8 },
-  table: { width: '100%', borderCollapse: 'collapse', background: '#0f172a' },
-  th: { textAlign: 'left', color: '#6b7280', fontSize: 12, fontWeight: 600, padding: '10px 12px', borderBottom: '1px solid #374151', whiteSpace: 'nowrap', background: '#0f172a' },
-  td: { padding: '9px 12px', fontSize: 13, color: '#d1d5db', borderBottom: '1px solid #1f2937', background: '#0f172a' },
-  trPar: { background: '#111827' },
-  badge: { padding: '2px 8px', borderRadius: 4, color: '#fff', fontSize: 11, fontWeight: 700 },
-  btnEdit: { background: 'none', border: 'none', cursor: 'pointer', marginRight: 6, fontSize: 15 },
-  btnDel: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 15 },
-  btnPrimary: { background: '#F4821F', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', cursor: 'pointer', fontWeight: 700, fontSize: 14 },
-  btnSecondary: { background: '#374151', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', cursor: 'pointer', fontWeight: 600, fontSize: 14 },
-  pag: { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, marginTop: 20 },
-  pagBtn: { background: '#1f2937', color: '#d1d5db', border: '1px solid #374151', borderRadius: 6, padding: '7px 16px', cursor: 'pointer', fontSize: 13 },
-  pagInfo: { color: '#9ca3af', fontSize: 13 },
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
-  modalBox: { background: '#1f2937', borderRadius: 12, padding: 28, width: 480, maxWidth: '90vw' },
-  modalTitulo: { fontSize: 18, fontWeight: 700, margin: '0 0 20px', color: '#f9fafb' },
-  row2: { display: 'flex', gap: 12 },
-  checkRow: { display: 'flex', alignItems: 'center', marginBottom: 16, cursor: 'pointer' },
-  modalBtns: { display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 },
+  container:       { color: C.text },
+  header:          { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 28px 16px', background: C.secondary },
+  titulo:          { fontSize: 22, fontWeight: 800, color: '#fff', margin: 0 },
+  tituloSub:       { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 4 },
+  toolbar:         { display: 'flex', gap: 12, alignItems: 'center', padding: '14px 28px 10px', flexWrap: 'wrap' },
+  search:          { flex: 1, minWidth: 200, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 20, padding: '9px 14px', color: C.text, fontSize: 14, outline: 'none' },
+  filtros:         { display: 'flex', gap: 6, flexWrap: 'wrap' },
+  filtroBtn:       { padding: '7px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surface, color: C.textSecondary, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
+  filtroBtnActivo: { background: C.primary, borderColor: C.primary, color: '#fff' },
+  total:           { color: C.textLight, fontSize: 13 },
+  loading:         { color: C.textLight, padding: 40, textAlign: 'center' },
+  tableWrap:       { overflowX: 'auto', margin: '0 28px', background: C.surface, borderRadius: 10, border: `1px solid ${C.border}`, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' },
+  table:           { width: '100%', borderCollapse: 'collapse' },
+  th:              { textAlign: 'left', color: C.textSecondary, fontSize: 11, fontWeight: 700, padding: '10px 14px', borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap', background: C.background, letterSpacing: 0.5 },
+  td:              { padding: '10px 14px', fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}` },
+  trPar:           { background: C.background },
+  badge:           { padding: '2px 8px', borderRadius: 10, color: '#fff', fontSize: 11, fontWeight: 700 },
+  btnEdit:         { background: 'none', border: 'none', cursor: 'pointer', marginRight: 6, fontSize: 15 },
+  btnDel:          { background: 'none', border: 'none', cursor: 'pointer', fontSize: 15 },
+  btnPrimary:      { background: C.primary, color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', cursor: 'pointer', fontWeight: 700, fontSize: 14 },
+  btnSecondary:    { background: C.border, color: C.text, border: 'none', borderRadius: 8, padding: '9px 18px', cursor: 'pointer', fontWeight: 600, fontSize: 14 },
+  pag:             { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, margin: '16px 0 8px' },
+  pagBtn:          { background: C.surface, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: '7px 16px', cursor: 'pointer', fontSize: 13 },
+  pagInfo:         { color: C.textLight, fontSize: 13 },
+  overlay:         { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
+  modalBox:        { background: C.surface, borderRadius: 16, padding: 28, width: 480, maxWidth: '90vw', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' },
+  modalTitulo:     { fontSize: 18, fontWeight: 700, margin: '0 0 20px', color: C.text },
+  row2:            { display: 'flex', gap: 12 },
+  checkRow:        { display: 'flex', alignItems: 'center', marginBottom: 16, cursor: 'pointer' },
+  modalBtns:       { display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 },
 };

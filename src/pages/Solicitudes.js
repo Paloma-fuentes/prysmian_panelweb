@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { C } from '../theme';
 import {
   getSolicitudes, crearSolicitud, editarSolicitud, eliminarSolicitud,
   entregarSolicitud, cancelarSolicitud, aprobarDevolucion, rechazarDevolucion,
@@ -187,7 +188,10 @@ export default function Solicitudes() {
   return (
     <div style={s.container}>
       <div style={s.header}>
-        <h1 style={s.titulo}>Solicitudes de Material</h1>
+        <div>
+          <div style={s.titulo}>Retiros y Solicitudes</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>Gestión de retiros de materiales</div>
+        </div>
         <button style={s.btnPrimary} onClick={abrirCrear}>+ Nueva Solicitud</button>
       </div>
 
@@ -432,39 +436,39 @@ export default function Solicitudes() {
 }
 
 const s = {
-  container: { padding: 28, color: '#f9fafb', background: '#0f172a', minHeight: '100vh' },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  titulo: { fontSize: 24, fontWeight: 800, margin: 0 },
-  toolbar: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' },
-  filtroBtn: { padding: '7px 14px', borderRadius: 6, border: '1px solid #374151', background: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 13 },
-  filtroBtnActivo: { background: '#F4821F', borderColor: '#F4821F', color: '#fff' },
-  total: { color: '#6b7280', fontSize: 13, marginLeft: 'auto' },
-  aviso: { background: '#1f2937', border: '1px solid #374151', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#9ca3af', marginBottom: 14 },
-  errorMsg: { background: '#7f1d1d', border: '1px solid #dc2626', borderRadius: 6, padding: '8px 12px', fontSize: 13, color: '#fca5a5', marginBottom: 12 },
-  loading: { color: '#9ca3af', padding: 40, textAlign: 'center' },
-  tableWrap: { overflowX: 'auto', background: '#0f172a', borderRadius: 8 },
-  table: { width: '100%', borderCollapse: 'collapse', background: '#0f172a' },
-  th: { textAlign: 'left', color: '#6b7280', fontSize: 12, fontWeight: 600, padding: '10px 12px', borderBottom: '1px solid #374151', whiteSpace: 'nowrap', background: '#0f172a' },
-  td: { padding: '9px 12px', fontSize: 13, color: '#d1d5db', borderBottom: '1px solid #1f2937', background: '#0f172a' },
-  trPar: { background: '#111827' },
-  badge: { padding: '2px 8px', borderRadius: 4, color: '#fff', fontSize: 11, fontWeight: 700 },
-  btnAct: { background: '#10b981', color: '#fff', border: 'none', borderRadius: 5, padding: '4px 7px', cursor: 'pointer', fontSize: 13, marginRight: 3 },
-  btnPrimary: { background: '#F4821F', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', cursor: 'pointer', fontWeight: 700, fontSize: 14 },
-  btnSecondary: { background: '#374151', color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', cursor: 'pointer', fontWeight: 600, fontSize: 14 },
-  overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
-  modalBox: { background: '#1f2937', borderRadius: 12, padding: 28, width: 560, maxWidth: '96vw', maxHeight: '92vh', overflowY: 'auto' },
-  modalHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  modalTitulo: { fontSize: 18, fontWeight: 700, margin: 0, color: '#f9fafb' },
-  btnCerrar: { background: 'none', border: '1px solid #374151', color: '#9ca3af', borderRadius: 6, width: 32, height: 32, cursor: 'pointer', fontSize: 16 },
-  label: { display: 'block', color: '#9ca3af', fontSize: 12, marginBottom: 4 },
-  input: { width: '100%', background: '#111827', border: '1px solid #374151', borderRadius: 6, padding: '8px 10px', color: '#f9fafb', fontSize: 14, boxSizing: 'border-box' },
-  inputReadonly: { background: '#0f172a', color: '#6b7280', cursor: 'not-allowed' },
-  select: { width: '100%', background: '#111827', border: '1px solid #374151', borderRadius: 6, padding: '8px 10px', color: '#f9fafb', fontSize: 14, boxSizing: 'border-box' },
-  sugerencias: { position: 'absolute', top: '100%', left: 0, right: 0, background: '#111827', border: '1px solid #374151', borderRadius: 6, zIndex: 50, maxHeight: 220, overflowY: 'auto' },
-  sugerencia: { padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #1f2937' },
-  sugerenciaSub: { display: 'block', fontSize: 11, color: '#6b7280', marginTop: 2 },
-  tipoBtn: { flex: 1, padding: '8px 12px', borderRadius: 6, border: '1px solid #374151', background: 'none', color: '#9ca3af', cursor: 'pointer', fontSize: 13, fontWeight: 600 },
-  tipoBtnActivo: { background: '#1f2937', borderColor: '#F4821F', color: '#F4821F' },
-  modalBtns: { display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 },
+  container:       { color: C.text },
+  header:          { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 28px 16px', background: C.secondary },
+  titulo:          { fontSize: 22, fontWeight: 800, color: '#fff', margin: 0 },
+  toolbar:         { display: 'flex', gap: 8, alignItems: 'center', padding: '14px 28px 10px', flexWrap: 'wrap' },
+  filtroBtn:       { padding: '7px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surface, color: C.textSecondary, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
+  filtroBtnActivo: { background: C.primary, borderColor: C.primary, color: '#fff' },
+  total:           { color: C.textLight, fontSize: 13, marginLeft: 'auto' },
+  aviso:           { background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92400e', margin: '0 28px 14px' },
+  errorMsg:        { background: C.errorLight, border: `1px solid ${C.error}`, borderRadius: 6, padding: '8px 12px', fontSize: 13, color: C.error, marginBottom: 12 },
+  loading:         { color: C.textLight, padding: 40, textAlign: 'center' },
+  tableWrap:       { overflowX: 'auto', margin: '0 28px', background: C.surface, borderRadius: 10, border: `1px solid ${C.border}`, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' },
+  table:           { width: '100%', borderCollapse: 'collapse' },
+  th:              { textAlign: 'left', color: C.textSecondary, fontSize: 11, fontWeight: 700, padding: '10px 14px', borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap', background: C.background, letterSpacing: 0.5 },
+  td:              { padding: '10px 14px', fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}` },
+  trPar:           { background: C.background },
+  badge:           { padding: '2px 8px', borderRadius: 10, color: '#fff', fontSize: 11, fontWeight: 700 },
+  btnAct:          { background: C.success, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 10px', cursor: 'pointer', fontSize: 12, marginRight: 3 },
+  btnPrimary:      { background: C.primary, color: '#fff', border: 'none', borderRadius: 8, padding: '9px 18px', cursor: 'pointer', fontWeight: 700, fontSize: 14 },
+  btnSecondary:    { background: C.border, color: C.text, border: 'none', borderRadius: 8, padding: '9px 18px', cursor: 'pointer', fontWeight: 600, fontSize: 14 },
+  overlay:         { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
+  modalBox:        { background: C.surface, borderRadius: 16, padding: 28, width: 560, maxWidth: '96vw', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' },
+  modalHeader:     { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitulo:     { fontSize: 18, fontWeight: 700, margin: 0, color: C.text },
+  btnCerrar:       { background: 'none', border: `1px solid ${C.border}`, color: C.textSecondary, borderRadius: 6, width: 32, height: 32, cursor: 'pointer', fontSize: 16 },
+  label:           { display: 'block', color: C.textSecondary, fontSize: 12, marginBottom: 4, fontWeight: 600 },
+  input:           { width: '100%', background: C.background, border: `1px solid ${C.border}`, borderRadius: 6, padding: '8px 10px', color: C.text, fontSize: 14, boxSizing: 'border-box' },
+  inputReadonly:   { background: C.border, color: C.textLight, cursor: 'not-allowed' },
+  select:          { width: '100%', background: C.background, border: `1px solid ${C.border}`, borderRadius: 6, padding: '8px 10px', color: C.text, fontSize: 14, boxSizing: 'border-box' },
+  sugerencias:     { position: 'absolute', top: '100%', left: 0, right: 0, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, zIndex: 50, maxHeight: 220, overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
+  sugerencia:      { padding: '8px 12px', cursor: 'pointer', borderBottom: `1px solid ${C.border}` },
+  sugerenciaSub:   { display: 'block', fontSize: 11, color: C.textLight, marginTop: 2 },
+  tipoBtn:         { flex: 1, padding: '8px 12px', borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.textSecondary, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
+  tipoBtnActivo:   { background: `${C.primary}15`, borderColor: C.primary, color: C.primary },
+  modalBtns:       { display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 },
   empty: { color: '#6b7280', textAlign: 'center', padding: 40 },
 };

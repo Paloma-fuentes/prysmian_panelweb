@@ -1,156 +1,167 @@
-import React, { useEffect, useState } from 'react';
-import StatCard from '../components/StatCard';
+import { useEffect, useState } from 'react';
 import { getKPIs } from '../services/dashboardService';
+import { C, card } from '../theme';
+
+function KpiCard({ titulo, valor, icono, color, sub, alerta, onClick }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        ...card,
+        cursor: onClick ? 'pointer' : 'default',
+        borderLeft: alerta ? `4px solid ${color}` : `4px solid transparent`,
+        display: 'flex', flexDirection: 'column', gap: 6,
+        minWidth: 0, flex: 1,
+        transition: 'transform 0.15s',
+      }}
+      onMouseEnter={e => onClick && (e.currentTarget.style.transform = 'translateY(-2px)')}
+      onMouseLeave={e => onClick && (e.currentTarget.style.transform = 'translateY(0)')}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 22 }}>{icono}</span>
+        {alerta && <span style={{ fontSize: 10, background: color, color: '#fff', padding: '2px 7px', borderRadius: 10, fontWeight: 700 }}>ALERTA</span>}
+      </div>
+      <div style={{ fontSize: 32, fontWeight: 800, color }}>{valor ?? '—'}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{titulo}</div>
+      {sub && <div style={{ fontSize: 11, color: C.textLight }}>{sub}</div>}
+    </div>
+  );
+}
 
 export default function Dashboard({ navegar }) {
-  const [kpis, setKpis] = useState(null);
+  const [kpis, setKpis]     = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getKPIs().then(data => { setKpis(data); setLoading(false); });
+    getKPIs().then(d => { setKpis(d); setLoading(false); });
   }, []);
 
-  if (loading) return <div style={s.loading}>Cargando dashboard...</div>;
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+      <div style={{ textAlign: 'center', color: C.textLight }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>📊</div>
+        <div style={{ fontSize: 15 }}>Cargando dashboard...</div>
+      </div>
+    </div>
+  );
 
   return (
-    <div style={s.container}>
-      <h1 style={s.titulo}>Dashboard de Bodega</h1>
-
-      {/* KPIs principales */}
-      <div style={s.grid}>
-        <StatCard titulo="Total Productos" valor={kpis.totalProductos} icono="📦" color="#6366f1" onClick={navegar ? () => navegar('inventario', 'todos') : undefined} />
-        <StatCard titulo="Con Stock" valor={kpis.conStock} icono="✅" color="#10b981" onClick={navegar ? () => navegar('inventario', 'conStock') : undefined} />
-        <StatCard titulo="Sin Stock" valor={kpis.sinStock} icono="❌" color="#ef4444" alerta={kpis.sinStock > 0} onClick={navegar ? () => navegar('inventario', 'sinStock') : undefined} />
-        <StatCard titulo="Bajo Stock" valor={kpis.bajoStock} icono="⚠️" color="#f59e0b" alerta={kpis.bajoStock > 0} onClick={navegar ? () => navegar('inventario', 'bajoStock') : undefined} />
-        <StatCard titulo="Críticos" valor={kpis.criticos} icono="🚨" color="#dc2626" alerta={kpis.criticos > 0} onClick={navegar ? () => navegar('inventario', 'criticos') : undefined} />
-        <StatCard titulo="Sin Rotación" valor={kpis.sinRotacion} icono="🔒" color="#8b5cf6" sub="+90 días sin movimiento" onClick={navegar ? () => navegar('inventario', 'sinRotacion') : undefined} />
-        <StatCard titulo="Solicitudes Pendientes" valor={kpis.solicitudesPendientes} icono="📤" color="#F4821F" alerta={kpis.solicitudesPendientes > 0} sub="Por entregar o aprobar" onClick={navegar ? () => navegar('solicitudes') : undefined} />
-        <StatCard titulo="Compras en Espera" valor={kpis.comprasEnEspera} icono="🛒" color="#8b5cf6" alerta={kpis.comprasEnEspera > 0} sub={kpis.comprasUrgentes > 0 ? `${kpis.comprasUrgentes} urgentes` : 'Sin urgentes'} onClick={navegar ? () => navegar('solicitudesCompra') : undefined} />
+    <div style={s.page}>
+      {/* Header */}
+      <div style={s.topBar}>
+        <div>
+          <div style={s.titulo}>Panel de Control</div>
+          <div style={s.subtitulo}>Encargada de Pañol — Resumen del sistema</div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={s.liveDot} />
+          <span style={{ fontSize: 12, color: C.textSecondary }}>En vivo</span>
+        </div>
       </div>
 
+      {/* KPIs — fila 1: inventario */}
+      <div style={s.secTitulo}>📦 Inventario</div>
+      <div style={s.kpiRow}>
+        <KpiCard titulo="Total Productos"  valor={kpis.totalProductos} icono="📦" color={C.primary}   onClick={() => navegar('inventario', 'todos')} />
+        <KpiCard titulo="Con Stock"        valor={kpis.conStock}        icono="✅" color={C.success}   onClick={() => navegar('inventario', 'conStock')} />
+        <KpiCard titulo="Sin Stock"        valor={kpis.sinStock}        icono="❌" color={C.error}     alerta={kpis.sinStock > 0}  onClick={() => navegar('inventario', 'sinStock')} />
+        <KpiCard titulo="Bajo Stock"       valor={kpis.bajoStock}       icono="⚠️" color={C.warning}  alerta={kpis.bajoStock > 0} onClick={() => navegar('inventario', 'bajoStock')} />
+        <KpiCard titulo="Críticos"         valor={kpis.criticos}        icono="🚨" color={C.urgent}   alerta={kpis.criticos > 0}  onClick={() => navegar('inventario', 'criticos')} />
+        <KpiCard titulo="Sin Rotación"     valor={kpis.sinRotacion}     icono="🔒" color="#8b5cf6"     sub="+90 días sin movimiento" onClick={() => navegar('inventario', 'sinRotacion')} />
+      </div>
+
+      {/* KPIs — fila 2: operaciones */}
+      <div style={s.secTitulo}>🔔 Operaciones</div>
+      <div style={s.kpiRow}>
+        <KpiCard titulo="Retiros Pendientes"  valor={kpis.solicitudesPendientes} icono="📤" color={C.primary}  alerta={kpis.solicitudesPendientes > 0} sub="Por entregar" onClick={() => navegar('solicitudes')} />
+        <KpiCard titulo="Compras en Espera"   valor={kpis.comprasEnEspera}       icono="🛒" color="#8b5cf6"    alerta={kpis.comprasEnEspera > 0} sub={kpis.comprasUrgentes > 0 ? `${kpis.comprasUrgentes} urgentes` : 'Sin urgentes'} onClick={() => navegar('solicitudesCompra')} />
+      </div>
+
+      {/* Fila inferior: top solicitados + máquinas */}
       <div style={s.row2}>
-        {/* Material más solicitado */}
-        <div style={s.card}>
-          <h3 style={s.cardTitulo}>🏆 Más solicitado del mes</h3>
-          {kpis.topProducto ? (
-            <>
-              <div style={s.topNombre}>{kpis.topProducto.nombre}</div>
-              <div style={s.topSub}>{kpis.topProducto.cantidad} retiros en los últimos 30 días</div>
-            </>
+        <div style={{ ...card, flex: 1 }}>
+          <div style={s.cardTitulo}>🏆 Más solicitados del mes (Top 4)</div>
+          {kpis.topMaquinas.length > 0 ? (
+            kpis.topMaquinas.slice(0, 4).map(([prod, cnt], i) => (
+              <div key={i} style={s.rankRow}>
+                <div style={{ ...s.rankBadge, background: i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : i === 2 ? '#cd7c2f' : C.border }}>
+                  <span style={s.rankNum}>{i + 1}</span>
+                </div>
+                <span style={{ flex: 1, fontSize: 13, color: C.text, fontWeight: 500 }}>{prod}</span>
+                <span style={s.rankCnt}>{cnt}</span>
+              </div>
+            ))
           ) : <div style={s.empty}>Sin datos este mes</div>}
         </div>
 
-        {/* Máquinas con mayor consumo */}
-        <div style={s.card}>
-          <h3 style={s.cardTitulo}>⚙️ Máquinas con mayor consumo</h3>
+        <div style={{ ...card, flex: 1 }}>
+          <div style={s.cardTitulo}>⚙️ Máquinas con mayor consumo</div>
           {kpis.topMaquinas.length > 0 ? (
-            <table style={s.table}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <tbody>
                 {kpis.topMaquinas.map(([maq, cnt], i) => (
-                  <tr key={i}>
-                    <td style={s.tdRank}>#{i + 1}</td>
-                    <td style={s.tdNombre}>{maq}</td>
-                    <td style={s.tdCant}>{cnt} uds</td>
+                  <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <td style={{ padding: '8px 4px', color: C.textSecondary, fontSize: 12, width: 28 }}>#{i + 1}</td>
+                    <td style={{ padding: '8px 4px', fontSize: 13, color: C.text }}>{maq}</td>
+                    <td style={{ padding: '8px 4px', fontSize: 13, fontWeight: 700, color: C.primary, textAlign: 'right' }}>{cnt} uds</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          ) : <div style={s.empty}>Sin movimientos registrados</div>}
+          ) : <div style={s.empty}>Sin movimientos</div>}
         </div>
       </div>
 
-      {/* Alertas: bajo stock */}
-      {kpis.bajoStock > 0 && (
-        <div style={s.card}>
-          <h3 style={{ ...s.cardTitulo, color: '#f59e0b' }}>⚠️ Productos con bajo stock ({kpis.bajoStock})</h3>
-          <p style={s.alertaDesc}>Estos productos están en o por debajo del punto de reorden.</p>
-        </div>
-      )}
-
-      {/* Sin rotación */}
-      {kpis.sinRotacionLista.length > 0 && (
-        <div style={s.card}>
-          <h3 style={{ ...s.cardTitulo, color: '#8b5cf6' }}>🔒 Productos sin rotación (últimos 90 días)</h3>
-          <table style={{ ...s.table, width: '100%' }}>
+      {/* Últimos movimientos */}
+      <div style={card}>
+        <div style={s.cardTitulo}>🕐 Últimos movimientos</div>
+        {kpis.ultimosMovimientos.length > 0 ? (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr>
-                {['Descripción', 'Ubicación', 'Stock'].map(h => (
-                  <th key={h} style={s.th}>{h}</th>
+              <tr style={{ background: C.background }}>
+                {['Tipo', 'Producto', 'Cantidad', 'Máquina', 'Usuario', 'Fecha'].map(h => (
+                  <th key={h} style={{ padding: '8px 10px', textAlign: 'left', color: C.textSecondary, fontWeight: 700, fontSize: 11, letterSpacing: 0.5 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {kpis.sinRotacionLista.map((m, i) => (
-                <tr key={i} style={i % 2 === 0 ? s.trPar : {}}>
-                  <td style={s.td}>{m.descripcion}</td>
-                  <td style={s.td}>{m.ubicacion}</td>
-                  <td style={s.td}>{m.stock}</td>
+              {kpis.ultimosMovimientos.map((m, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${C.border}`, background: i % 2 === 0 ? '#fff' : C.background }}>
+                  <td style={{ padding: '9px 10px' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: m.tipo === 'retiro' ? C.errorLight : C.successLight, color: m.tipo === 'retiro' ? C.error : C.success }}>
+                      {m.tipo?.toUpperCase()}
+                    </span>
+                  </td>
+                  <td style={{ padding: '9px 10px', fontWeight: 500 }}>{m.producto}</td>
+                  <td style={{ padding: '9px 10px', color: C.textSecondary }}>{m.cantidad}</td>
+                  <td style={{ padding: '9px 10px', color: C.textSecondary }}>{m.maquina || '—'}</td>
+                  <td style={{ padding: '9px 10px', color: C.textSecondary }}>{m.usuario || '—'}</td>
+                  <td style={{ padding: '9px 10px', color: C.textLight, fontSize: 11 }}>
+                    {m.fecha?.toDate ? m.fecha.toDate().toLocaleDateString('es-CL') : '—'}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {/* Últimos movimientos */}
-      <div style={s.card}>
-        <h3 style={s.cardTitulo}>🕐 Últimos movimientos</h3>
-        {kpis.ultimosMovimientos.length > 0 ? (
-          <table style={{ ...s.table, width: '100%' }}>
-            <thead>
-              <tr>
-                {['Fecha', 'Tipo', 'Producto', 'Cantidad', 'Máquina', 'Usuario'].map(h => (
-                  <th key={h} style={s.th}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {kpis.ultimosMovimientos.map((h, i) => {
-                const fecha = h.fecha?.toDate ? h.fecha.toDate().toLocaleDateString('es-CL') : (h.fecha || '—');
-                return (
-                  <tr key={i} style={i % 2 === 0 ? s.trPar : {}}>
-                    <td style={s.td}>{fecha}</td>
-                    <td style={s.td}><span style={{ ...s.badge, background: tipoBadge(h.tipo) }}>{h.tipo}</span></td>
-                    <td style={s.td}>{h.producto}</td>
-                    <td style={s.td}>{h.cantidad}</td>
-                    <td style={s.td}>{h.maquina || '—'}</td>
-                    <td style={s.td}>{h.usuario || '—'}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        ) : <div style={s.empty}>Sin movimientos registrados aún</div>}
+        ) : <div style={s.empty}>Sin movimientos recientes</div>}
       </div>
     </div>
   );
 }
 
-function tipoBadge(tipo) {
-  if (tipo === 'retiro') return '#dc2626';
-  if (tipo === 'ingreso') return '#10b981';
-  if (tipo === 'devolucion') return '#6366f1';
-  return '#6b7280';
-}
-
 const s = {
-  container: { padding: 28, color: '#f9fafb', background: '#0f172a', minHeight: '100vh' },
-  loading: { padding: 40, color: '#9ca3af', textAlign: 'center', fontSize: 16 },
-  titulo: { fontSize: 24, fontWeight: 800, color: '#f9fafb', marginBottom: 24, marginTop: 0 },
-  grid: { display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 24 },
-  row2: { display: 'flex', gap: 16, marginBottom: 20, flexWrap: 'wrap' },
-  card: { background: '#1f2937', borderRadius: 10, padding: 20, marginBottom: 16, flex: 1, minWidth: 300 },
-  cardTitulo: { fontSize: 15, fontWeight: 700, color: '#f9fafb', marginTop: 0, marginBottom: 14 },
-  alertaDesc: { color: '#9ca3af', fontSize: 13, margin: 0 },
-  topNombre: { fontSize: 18, fontWeight: 700, color: '#F4821F' },
-  topSub: { fontSize: 12, color: '#6b7280', marginTop: 4 },
-  empty: { color: '#6b7280', fontSize: 13 },
-  table: { borderCollapse: 'collapse' },
-  th: { textAlign: 'left', color: '#6b7280', fontSize: 12, fontWeight: 600, padding: '6px 12px', borderBottom: '1px solid #374151' },
-  td: { padding: '8px 12px', fontSize: 13, color: '#d1d5db' },
-  tdRank: { padding: '6px 8px', color: '#F4821F', fontWeight: 700, fontSize: 13 },
-  tdNombre: { padding: '6px 12px', color: '#d1d5db', fontSize: 13 },
-  tdCant: { padding: '6px 12px', color: '#9ca3af', fontSize: 13 },
-  trPar: { background: '#111827' },
-  badge: { padding: '2px 8px', borderRadius: 4, color: '#fff', fontSize: 11, fontWeight: 600 },
+  page:     { padding: '0', color: C.text },
+  topBar:   { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 28px 16px', background: C.secondary, color: '#fff' },
+  titulo:   { fontSize: 22, fontWeight: 800, color: '#fff' },
+  subtitulo:{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 4 },
+  liveDot:  { width: 8, height: 8, borderRadius: 4, background: '#4ade80' },
+  secTitulo:{ fontSize: 12, fontWeight: 700, color: C.textSecondary, letterSpacing: 1, padding: '16px 28px 8px', textTransform: 'uppercase' },
+  kpiRow:   { display: 'flex', gap: 12, padding: '0 28px', flexWrap: 'wrap' },
+  row2:     { display: 'flex', gap: 16, padding: '0 28px', marginTop: 4, flexWrap: 'wrap' },
+  cardTitulo:{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 12 },
+  rankRow:  { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: `1px solid ${C.border}` },
+  rankBadge:{ width: 24, height: 24, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  rankNum:  { fontSize: 11, fontWeight: 700, color: '#fff' },
+  rankCnt:  { fontSize: 12, fontWeight: 700, color: C.primary, background: `${C.primary}20`, padding: '2px 8px', borderRadius: 10 },
+  empty:    { color: C.textLight, fontSize: 13, padding: '20px 0', textAlign: 'center' },
 };
