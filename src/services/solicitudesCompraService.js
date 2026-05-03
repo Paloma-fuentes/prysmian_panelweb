@@ -2,7 +2,7 @@ import {
   collection, doc, getDocs, updateDoc, deleteDoc,
   query, orderBy, serverTimestamp,
 } from 'firebase/firestore';
-import { db } from '../../firebaseConfig';
+import { db } from '../config/firebase';
 
 const COL = 'solicitudes_compra';
 
