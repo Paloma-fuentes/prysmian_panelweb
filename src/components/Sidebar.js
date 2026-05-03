@@ -11,7 +11,7 @@ const MENU = [
   { id: 'importar',          label: 'Importar Excel',        icon: '⬆️' },
 ];
 
-export default function Sidebar({ pagina, setPagina }) {
+export default function Sidebar({ pagina, setPagina, onLogout }) {
   return (
     <div style={s.sidebar}>
       {/* Logo / Header */}
@@ -45,8 +45,13 @@ export default function Sidebar({ pagina, setPagina }) {
 
       {/* Footer */}
       <div style={s.footer}>
-        <div style={s.footerDot} />
-        <span style={s.footerTxt}>Sistema Activo</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+          <div style={s.footerDot} />
+          <span style={s.footerTxt}>Sistema Activo</span>
+        </div>
+        {onLogout && (
+          <button onClick={onLogout} style={s.logoutBtn} title="Cerrar sesión">⏻</button>
+        )}
       </div>
     </div>
   );
@@ -104,6 +109,7 @@ const s = {
     borderTop: '1px solid rgba(255,255,255,0.1)',
     display: 'flex', alignItems: 'center', gap: 8,
   },
-  footerDot:  { width: 8, height: 8, borderRadius: 4, background: '#4ade80' },
+  footerDot:  { width: 8, height: 8, borderRadius: 4, background: '#4ade80', flexShrink: 0 },
   footerTxt:  { fontSize: 11, color: 'rgba(255,255,255,0.4)' },
+  logoutBtn:  { background: 'none', border: 'none', color: 'rgba(255,255,255,0.3)', fontSize: 16, cursor: 'pointer', padding: '4px', lineHeight: 1 },
 };
