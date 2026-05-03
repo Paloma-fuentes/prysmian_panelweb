@@ -257,13 +257,13 @@ export default function Solicitudes() {
                       {sol.estado === 'pendiente' && sol.tipo === 'retiro' && (
                         <>
                           <button style={s.btnAct} title="Entregar" disabled={bloq} onClick={() => accion('entregar', sol)}>✅</button>
-                          <button style={{ ...s.btnAct, background: '#374151' }} title="Cancelar" disabled={bloq} onClick={() => accion('cancelar', sol)}>🚫</button>
+                          <button style={{ ...s.btnAct, background: C.textSecondary }} title="Cancelar" disabled={bloq} onClick={() => accion('cancelar', sol)}>🚫</button>
                         </>
                       )}
                       {sol.estado === 'pendiente' && sol.tipo === 'devolucion' && (
                         <>
                           <button style={s.btnAct} title="Aprobar devolución" disabled={bloq} onClick={() => accion('aprobar_dev', sol)}>↩️</button>
-                          <button style={{ ...s.btnAct, background: '#374151' }} title="Rechazar" disabled={bloq} onClick={() => accion('rechazar_dev', sol)}>❌</button>
+                          <button style={{ ...s.btnAct, background: C.textSecondary }} title="Rechazar" disabled={bloq} onClick={() => accion('rechazar_dev', sol)}>❌</button>
                         </>
                       )}
                       {sol.estado === 'entregado' && (
@@ -414,7 +414,7 @@ export default function Solicitudes() {
               <textarea style={{ ...s.input, height: 60, resize: 'vertical' }} placeholder="Ej: Para cotización, urgente, etc." value={form.notas} onChange={e => setForm(f => ({ ...f, notas: e.target.value }))} />
             </div>
 
-            <div style={{ ...s.aviso, borderColor: form.urgencia === 'critico' ? '#dc2626' : form.urgencia === 'urgente' ? '#f59e0b' : '#374151', marginBottom: errorValidacion ? 8 : 16 }}>
+            <div style={{ ...s.aviso, borderColor: form.urgencia === 'critico' ? '#dc2626' : form.urgencia === 'urgente' ? '#f59e0b' : C.border, marginBottom: errorValidacion ? 8 : 16 }}>
               {form.tipo === 'retiro'
                 ? '⏳ Se creará como Pendiente. El stock se descuenta SOLO al marcar "Entregar".'
                 : '↩️ La devolución sube el stock SOLO al ser aprobada.'}
@@ -437,16 +437,16 @@ export default function Solicitudes() {
 
 const s = {
   container:       { color: C.text },
-  header:          { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 28px 16px', background: C.secondary },
+  header:          { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px 16px', background: C.secondary },
   titulo:          { fontSize: 22, fontWeight: 800, color: '#fff', margin: 0 },
-  toolbar:         { display: 'flex', gap: 8, alignItems: 'center', padding: '14px 28px 10px', flexWrap: 'wrap' },
+  toolbar:         { display: 'flex', gap: 8, alignItems: 'center', padding: '14px 24px 10px', flexWrap: 'wrap' },
   filtroBtn:       { padding: '7px 14px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surface, color: C.textSecondary, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
   filtroBtnActivo: { background: C.primary, borderColor: C.primary, color: '#fff' },
   total:           { color: C.textLight, fontSize: 13, marginLeft: 'auto' },
   aviso:           { background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#92400e', margin: '0 28px 14px' },
   errorMsg:        { background: C.errorLight, border: `1px solid ${C.error}`, borderRadius: 6, padding: '8px 12px', fontSize: 13, color: C.error, marginBottom: 12 },
   loading:         { color: C.textLight, padding: 40, textAlign: 'center' },
-  tableWrap:       { overflowX: 'auto', margin: '0 28px', background: C.surface, borderRadius: 10, border: `1px solid ${C.border}`, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' },
+  tableWrap:       { overflowX: 'auto', margin: '0 0 16px', background: C.surface, borderRadius: 10, border: `1px solid ${C.border}`, boxShadow: '0 1px 4px rgba(0,0,0,0.07)' },
   table:           { width: '100%', borderCollapse: 'collapse' },
   th:              { textAlign: 'left', color: C.textSecondary, fontSize: 11, fontWeight: 700, padding: '10px 14px', borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap', background: C.background, letterSpacing: 0.5 },
   td:              { padding: '10px 14px', fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}` },

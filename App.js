@@ -56,7 +56,7 @@ export default function App() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#F5F5F5', fontFamily: font.family }}>
       <Sidebar pagina={pagina} setPagina={setPagina} onLogout={() => signOut(auth)} />
-      <main style={{ flex: 1, overflowY: 'auto', maxHeight: '100vh', background: '#F5F5F5' }}>
+      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', height: '100vh', background: '#F5F5F5' }}>
         <Pagina navegar={navegar} filtroInicial={filtroInicial} />
       </main>
     </div>

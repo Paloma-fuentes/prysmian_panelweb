@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { C } from '../theme';
 import * as XLSX from 'xlsx';
 import { importarLote } from '../services/inventarioService';
 import { importarHistorialLote } from '../services/historialService';
@@ -116,9 +117,13 @@ export default function ImportarExcel() {
 
   return (
     <div style={s.container}>
-      <h1 style={s.titulo}>Importar desde Excel</h1>
-      <p style={s.desc}>Sube el archivo <strong style={{ color: '#F4821F' }}>Prysmian.xlsx</strong> para sincronizar todos los datos con Firestore. Se procesarán las hojas: Inventario, Retiros, Ingresos y Devoluciones.</p>
+      {/* Header igual que otras páginas */}
+      <div style={{ background: C.secondary, padding: '20px 24px', marginBottom: 0 }}>
+        <div style={s.titulo}>Importar desde Excel</div>
+        <div style={s.desc}>Sube <strong style={{ color: C.primary }}>Prysmian.xlsx</strong> para sincronizar inventario, retiros, ingresos y devoluciones.</div>
+      </div>
 
+      <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={s.uploadArea}>
         <div style={s.uploadIcon}>📊</div>
         <p style={s.uploadText}>Selecciona el archivo Excel</p>
@@ -158,26 +163,27 @@ export default function ImportarExcel() {
           </div>
         ))}
       </div>
+      </div>{/* fin padding wrapper */}
     </div>
   );
 }
 
 const s = {
-  container: { padding: 28, color: '#f9fafb', maxWidth: 800 },
-  titulo: { fontSize: 24, fontWeight: 800, margin: '0 0 10px' },
-  desc: { color: '#9ca3af', fontSize: 14, marginBottom: 28 },
-  uploadArea: { background: '#1f2937', border: '2px dashed #374151', borderRadius: 12, padding: '40px 20px', textAlign: 'center', marginBottom: 24 },
-  uploadIcon: { fontSize: 48, marginBottom: 12 },
-  uploadText: { color: '#9ca3af', marginBottom: 16 },
-  btnPrimary: { background: '#F4821F', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 22px', cursor: 'pointer', fontWeight: 700, fontSize: 14, display: 'inline-block' },
-  progreso: { background: '#1f2937', borderRadius: 8, padding: 16, marginBottom: 16 },
-  progresoTexto: { color: '#F4821F', margin: 0, fontSize: 14 },
-  logBox: { background: '#111827', borderRadius: 8, padding: 16, fontFamily: 'monospace', fontSize: 13, marginBottom: 24, maxHeight: 300, overflowY: 'auto' },
-  logLine: { marginBottom: 4 },
-  logTime: { color: '#6b7280', marginRight: 8 },
-  infoBox: { background: '#1f2937', borderRadius: 10, padding: 20 },
-  infoTitulo: { fontSize: 14, fontWeight: 700, color: '#9ca3af', marginTop: 0, marginBottom: 14 },
-  infoFila: { display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 10 },
-  infoBadge: { background: '#374151', color: '#F4821F', padding: '2px 10px', borderRadius: 4, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap' },
-  infoCols: { color: '#6b7280', fontSize: 12 },
+  container:    { width: '100%', color: C.text },
+  titulo:       { fontSize: 22, fontWeight: 800, color: '#fff', margin: 0 },
+  desc:         { color: 'rgba(255,255,255,0.6)', fontSize: 13, marginTop: 4 },
+  uploadArea:   { background: C.surface, border: `2px dashed ${C.border}`, borderRadius: 12, padding: '40px 20px', textAlign: 'center', marginBottom: 20 },
+  uploadIcon:   { fontSize: 48, marginBottom: 12 },
+  uploadText:   { color: C.textSecondary, marginBottom: 16 },
+  btnPrimary:   { background: C.primary, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 22px', cursor: 'pointer', fontWeight: 700, fontSize: 14, display: 'inline-block' },
+  progreso:     { background: '#fff3e0', border: `1px solid ${C.primary}`, borderRadius: 8, padding: 16, marginBottom: 16 },
+  progresoTexto:{ color: C.primary, margin: 0, fontSize: 14, fontWeight: 600 },
+  logBox:       { background: C.secondary, borderRadius: 8, padding: 16, fontFamily: 'monospace', fontSize: 12, marginBottom: 20, maxHeight: 260, overflowY: 'auto', color: '#a5f3fc' },
+  logLine:      { marginBottom: 4 },
+  logTime:      { color: 'rgba(255,255,255,0.4)', marginRight: 8 },
+  infoBox:      { background: C.surface, borderRadius: 10, padding: 20, border: `1px solid ${C.border}` },
+  infoTitulo:   { fontSize: 14, fontWeight: 700, color: C.textSecondary, marginTop: 0, marginBottom: 14 },
+  infoFila:     { display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 10 },
+  infoBadge:    { background: `${C.primary}15`, color: C.primary, padding: '2px 10px', borderRadius: 6, fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', border: `1px solid ${C.primary}` },
+  infoCols:     { color: C.textSecondary, fontSize: 12 },
 };
