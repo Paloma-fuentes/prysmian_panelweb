@@ -1,11 +1,12 @@
-import { collection, getDocs, query, where, orderBy, limit, getCountFromServer } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 export async function getKPIs() {
-  const [matSnap, histSnap, solSnap] = await Promise.all([
+  const [matSnap, histSnap, solSnap, comprasSnap] = await Promise.all([
     getDocs(collection(db, 'materiales')),
     getDocs(query(collection(db, 'historial'), orderBy('fecha', 'desc'), limit(500))),
-    getDocs(query(collection(db, 'solicitudes'), where('estado', '==', 'pendiente'))),
+    getDocs(query(collection(db, 'solicitudes'), where('estado', '==', 'pendiente_entrega'))),
+    getDocs(query(collection(db, 'solicitudes_compra'), where('estado', '==', 'en espera'))),
   ]);
 
   const materiales = matSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -53,6 +54,8 @@ export async function getKPIs() {
   // --- Últimos movimientos ---
   const ultimosMovimientos = historial.slice(0, 10);
 
+  const comprasUrgentes = comprasSnap.docs.filter(d => d.data().urgencia === 'urgencia').length;
+
   return {
     totalProductos,
     conStock,
@@ -60,6 +63,8 @@ export async function getKPIs() {
     bajoStock,
     criticos,
     solicitudesPendientes: solSnap.docs.length,
+    comprasEnEspera:       comprasSnap.docs.length,
+    comprasUrgentes,
     topProducto: topProducto ? { nombre: topProducto[0], cantidad: topProducto[1] } : null,
     topMaquinas,
     sinRotacion: sinRotacion.length,

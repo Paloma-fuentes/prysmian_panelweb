@@ -3,10 +3,18 @@ import Sidebar from './src/components/Sidebar';
 import Dashboard from './src/pages/Dashboard';
 import Inventario from './src/pages/Inventario';
 import Solicitudes from './src/pages/Solicitudes';
+import SolicitudesCompra from './src/pages/SolicitudesCompra';
 import Historial from './src/pages/Historial';
 import ImportarExcel from './src/pages/ImportarExcel';
 
-const PAGINAS = { dashboard: Dashboard, inventario: Inventario, solicitudes: Solicitudes, historial: Historial, importar: ImportarExcel };
+const PAGINAS = {
+  dashboard:         Dashboard,
+  inventario:        Inventario,
+  solicitudes:       Solicitudes,
+  solicitudesCompra: SolicitudesCompra,
+  historial:         Historial,
+  importar:          ImportarExcel,
+};
 
 export default function App() {
   const [pagina, setPagina] = useState('dashboard');

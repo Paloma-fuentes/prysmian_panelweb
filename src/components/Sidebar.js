@@ -1,11 +1,12 @@
 import React from 'react';
 
 const MENU = [
-  { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-  { id: 'inventario', label: 'Inventario', icon: '📦' },
-  { id: 'solicitudes', label: 'Solicitudes', icon: '📤' },
-  { id: 'historial', label: 'Historial', icon: '📋' },
-  { id: 'importar', label: 'Importar Excel', icon: '⬆️' },
+  { id: 'dashboard',        label: 'Dashboard',          icon: '📊' },
+  { id: 'inventario',       label: 'Inventario',          icon: '📦' },
+  { id: 'solicitudesCompra',label: 'Solicitudes Compra',  icon: '🛒' },
+  { id: 'solicitudes',      label: 'Retiros / Solicitudes',icon: '📤' },
+  { id: 'historial',        label: 'Historial',           icon: '📋' },
+  { id: 'importar',         label: 'Importar Excel',      icon: '⬆️' },
 ];
 
 export default function Sidebar({ pagina, setPagina }) {
