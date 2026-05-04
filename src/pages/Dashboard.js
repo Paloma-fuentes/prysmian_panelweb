@@ -30,10 +30,12 @@ function KpiCard({ titulo, valor, icono, color, sub, alerta, onClick }) {
   );
 }
 
-export default function Dashboard({ navegar }) {
+export default function Dashboard({ navegar, perfil }) {
   const [kpis, setKpis]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
+  
+  const esAdmin = perfil?.rol === 'admin' || perfil?.rol === 'panol';
 
   function cargar() {
     getKPIs()
@@ -70,69 +72,89 @@ export default function Dashboard({ navegar }) {
       {/* ── Header ── */}
       <div style={{ background: C.secondary, padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>Panel de Control</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 3 }}>Encargada de Pañol — Vista general del sistema</div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#fff' }}>
+            {esAdmin ? 'Panel de Control' : `¡Hola, ${perfil?.nombre || 'Usuario'}!`}
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 3 }}>
+            {esAdmin ? 'Encargada de Pañol — Vista general' : '¿Qué material necesitas para hoy?'}
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 8, height: 8, borderRadius: 4, background: '#4ade80' }} />
-          <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>En vivo</span>
-        </div>
+        {!esAdmin && (
+          <button 
+            onClick={() => navegar('solicitudes')}
+            style={{ background: C.primary, color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}
+          >
+            + Nueva Solicitud
+          </button>
+        )}
       </div>
 
       {/* ── Contenido ── */}
       <div style={{ flex: 1, padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {/* KPIs inventario */}
-        <Section titulo="📦 Inventario">
-          <div style={grid}>
-            <KpiCard titulo="Total Productos"  valor={kpis.totalProductos} icono="📦" color={C.primary}  onClick={() => navegar('inventario', 'todos')} />
-            <KpiCard titulo="Con Stock"        valor={kpis.conStock}       icono="✅" color={C.success}  onClick={() => navegar('inventario', 'conStock')} />
-            <KpiCard titulo="Sin Stock"        valor={kpis.sinStock}       icono="❌" color={C.error}    alerta={kpis.sinStock > 0}  onClick={() => navegar('inventario', 'sinStock')} />
-            <KpiCard titulo="Bajo Stock"       valor={kpis.bajoStock}      icono="⚠️" color={C.warning} alerta={kpis.bajoStock > 0} onClick={() => navegar('inventario', 'bajoStock')} />
-            <KpiCard titulo="Críticos"         valor={kpis.criticos}       icono="🚨" color={C.urgent}  alerta={kpis.criticos > 0}  onClick={() => navegar('inventario', 'criticos')} />
-            <KpiCard titulo="Sin Rotación"     valor={kpis.sinRotacion}    icono="🔒" color="#8b5cf6"    sub="+90 días sin movimiento" onClick={() => navegar('inventario', 'sinRotacion')} />
-          </div>
-        </Section>
-
-        {/* KPIs operaciones */}
-        <Section titulo="🔔 Operaciones">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
-            <KpiCard titulo="Retiros Pendientes" valor={kpis.solicitudesPendientes} icono="📤" color={C.primary}  alerta={kpis.solicitudesPendientes > 0} sub="Por entregar" onClick={() => navegar('solicitudes')} />
-            <KpiCard titulo="Compras en Espera"  valor={kpis.comprasEnEspera}       icono="🛒" color="#8b5cf6"   alerta={kpis.comprasEnEspera > 0} sub={kpis.comprasUrgentes > 0 ? `${kpis.comprasUrgentes} urgentes` : 'Sin urgentes'} onClick={() => navegar('solicitudesCompra')} />
-          </div>
-        </Section>
-
-        {/* Fila: Top solicitados + Máquinas */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          <Card titulo="🏆 Más solicitados del mes">
-            {kpis.topMaquinas.length > 0 ? kpis.topMaquinas.slice(0, 5).map(([prod, cnt], i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < 4 ? `1px solid ${C.border}` : 'none' }}>
-                <div style={{ width: 24, height: 24, borderRadius: 12, background: i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : i === 2 ? '#cd7c2f' : C.border, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff', flexShrink: 0 }}>{i + 1}</div>
-                <span style={{ flex: 1, fontSize: 13, color: C.text, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prod}</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: C.primary, background: `${C.primary}15`, padding: '2px 8px', borderRadius: 10 }}>{cnt}</span>
+        {/* Vista Admin: KPIs completas */}
+        {esAdmin ? (
+          <>
+            <Section titulo="📦 Inventario">
+              <div style={grid}>
+                <KpiCard titulo="Total Productos"  valor={kpis.totalProductos} icono="📦" color={C.primary}  onClick={() => navegar('inventario', 'todos')} />
+                <KpiCard titulo="Con Stock"        valor={kpis.conStock}       icono="✅" color={C.success}  onClick={() => navegar('inventario', 'conStock')} />
+                <KpiCard titulo="Sin Stock"        valor={kpis.sinStock}       icono="❌" color={C.error}    alerta={kpis.sinStock > 0}  onClick={() => navegar('inventario', 'sinStock')} />
+                <KpiCard titulo="Bajo Stock"       valor={kpis.bajoStock}      icono="⚠️" color={C.warning} alerta={kpis.bajoStock > 0} onClick={() => navegar('inventario', 'bajoStock')} />
+                <KpiCard titulo="Críticos"         valor={kpis.criticos}       icono="🚨" color={C.urgent}  alerta={kpis.criticos > 0}  onClick={() => navegar('inventario', 'criticos')} />
+                <KpiCard titulo="Sin Rotación"     valor={kpis.sinRotacion}    icono="🔒" color="#8b5cf6"    sub="+90 días sin movimiento" onClick={() => navegar('inventario', 'sinRotacion')} />
               </div>
-            )) : <Empty />}
-          </Card>
+            </Section>
 
-          <Card titulo="⚙️ Máquinas con mayor consumo">
-            {kpis.topMaquinas.length > 0 ? (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <tbody>
-                  {kpis.topMaquinas.map(([maq, cnt], i) => (
-                    <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}>
-                      <td style={{ padding: '8px 4px', color: C.textSecondary, width: 28, fontSize: 12 }}>#{i + 1}</td>
-                      <td style={{ padding: '8px 4px', color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 0 }}>{maq}</td>
-                      <td style={{ padding: '8px 4px', fontWeight: 700, color: C.primary, textAlign: 'right', whiteSpace: 'nowrap' }}>{cnt} uds</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : <Empty />}
-          </Card>
-        </div>
+            <Section titulo="🔔 Operaciones">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+                <KpiCard titulo="Retiros Pendientes" valor={kpis.solicitudesPendientes} icono="📤" color={C.primary}  alerta={kpis.solicitudesPendientes > 0} sub="Por entregar" onClick={() => navegar('solicitudes')} />
+                <KpiCard titulo="Compras en Espera"  valor={kpis.comprasEnEspera}       icono="🛒" color="#8b5cf6"   alerta={kpis.comprasEnEspera > 0} sub={kpis.comprasUrgentes > 0 ? `${kpis.comprasUrgentes} urgentes` : 'Sin urgentes'} onClick={() => navegar('solicitudesCompra')} />
+              </div>
+            </Section>
 
-        {/* Últimos movimientos */}
-        <Card titulo="🕐 Últimos movimientos">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <Card titulo="🏆 Más solicitados del mes">
+                {kpis.topMaquinas.length > 0 ? kpis.topMaquinas.slice(0, 5).map(([prod, cnt], i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: i < 4 ? `1px solid ${C.border}` : 'none' }}>
+                    <div style={{ width: 24, height: 24, borderRadius: 12, background: i === 0 ? '#f59e0b' : i === 1 ? '#94a3b8' : i === 2 ? '#cd7c2f' : C.border, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#fff', flexShrink: 0 }}>{i + 1}</div>
+                    <span style={{ flex: 1, fontSize: 13, color: C.text, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prod}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: C.primary, background: `${C.primary}15`, padding: '2px 8px', borderRadius: 10 }}>{cnt}</span>
+                  </div>
+                )) : <Empty />}
+              </Card>
+
+              <Card titulo="⚙️ Máquinas con mayor consumo">
+                {kpis.topMaquinas.length > 0 ? (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <tbody>
+                      {kpis.topMaquinas.map(([maq, cnt], i) => (
+                        <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}>
+                          <td style={{ padding: '8px 4px', color: C.textSecondary, width: 28, fontSize: 12 }}>#{i + 1}</td>
+                          <td style={{ padding: '8px 4px', color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 0 }}>{maq}</td>
+                          <td style={{ padding: '8px 4px', fontWeight: 700, color: C.primary, textAlign: 'right', whiteSpace: 'nowrap' }}>{cnt} uds</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : <Empty />}
+              </Card>
+            </div>
+          </>
+        ) : (
+          /* Vista Usuario: Mis Solicitudes */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+             <Section titulo="📊 Mi Actividad">
+              <div style={grid}>
+                <KpiCard titulo="Mis Retiros" valor={kpis.ultimosMovimientos.filter(m => m.usuario === perfil.nombre).length} icono="📦" color={C.primary} />
+                <KpiCard titulo="Pendientes" valor={kpis.solicitudesPendientes} icono="⏳" color={C.warning} onClick={() => navegar('solicitudes')} />
+              </div>
+            </Section>
+          </div>
+        )}
+
+        {/* Últimos movimientos (Común a ambos, pero filtrado o completo según rol) */}
+        <Card titulo={esAdmin ? "🕐 Últimos movimientos" : "🕐 Mis solicitudes recientes"}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
@@ -143,9 +165,9 @@ export default function Dashboard({ navegar }) {
                 </tr>
               </thead>
               <tbody>
-                {kpis.ultimosMovimientos.length === 0 ? (
-                  <tr><td colSpan={6} style={{ padding: 24, textAlign: 'center', color: C.textLight }}>Sin movimientos</td></tr>
-                ) : kpis.ultimosMovimientos.map((m, i) => (
+                {(esAdmin ? kpis.ultimosMovimientos : kpis.ultimosMovimientos.filter(m => m.usuario === perfil?.nombre)).length === 0 ? (
+                  <tr><td colSpan={6} style={{ padding: 24, textAlign: 'center', color: C.textLight }}>Sin movimientos registrados</td></tr>
+                ) : (esAdmin ? kpis.ultimosMovimientos : kpis.ultimosMovimientos.filter(m => m.usuario === perfil?.nombre)).map((m, i) => (
                   <tr key={i} style={{ borderBottom: `1px solid ${C.border}`, background: i % 2 === 0 ? '#fff' : C.background }}>
                     <td style={{ padding: '9px 12px' }}>
                       <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: m.tipo === 'retiro' ? '#fee2e2' : '#d1fae5', color: m.tipo === 'retiro' ? C.error : C.success }}>{(m.tipo || '').toUpperCase()}</span>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './src/config/firebase';
+import { getPerfilUsuario } from './src/services/authService';
 import { font, C } from './src/theme';
 
 import Login             from './src/pages/Login';
@@ -16,6 +17,7 @@ import Analisis          from './src/pages/Analisis';
 import ImportarExcel     from './src/pages/ImportarExcel';
 import RetiroDirecto     from './src/pages/RetiroDirecto';
 import DevolucionDirecta from './src/pages/DevolucionDirecta';
+import ConteoInventario  from './src/pages/ConteoInventario';
 
 const PAGINAS = {
   dashboard:         Dashboard,
@@ -28,10 +30,12 @@ const PAGINAS = {
   importar:          ImportarExcel,
   retiroDirecto:     RetiroDirecto,
   devolucionDirecta: DevolucionDirecta,
+  conteo:            ConteoInventario,
 };
 
 export default function App() {
   const [user, setUser]               = useState(undefined); // undefined = verificando
+  const [perfil, setPerfil]           = useState(null);
   const [pagina, setPagina]           = useState('dashboard');
   const [filtroInicial, setFiltroInicial] = useState('todos');
   const [mostrarRegistro, setMostrarRegistro] = useState(false);
@@ -40,7 +44,16 @@ export default function App() {
 
   // Escuchar cambios de sesión de Firebase
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, u => setUser(u || null));
+    const unsub = onAuthStateChanged(auth, async u => {
+      if (u) {
+        const p = await getPerfilUsuario(u.uid);
+        setPerfil(p);
+        setUser(u);
+      } else {
+        setPerfil(null);
+        setUser(null);
+      }
+    });
     return unsub;
   }, []);
 
@@ -66,9 +79,9 @@ export default function App() {
   // Con sesión → Panel
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#F5F5F5', fontFamily: font.family }}>
-      <Sidebar pagina={pagina} setPagina={setPagina} onLogout={() => signOut(auth)} />
+      <Sidebar pagina={pagina} setPagina={setPagina} onLogout={() => signOut(auth)} perfil={perfil} />
       <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', height: '100vh', background: '#F5F5F5' }}>
-        <Pagina navegar={navegar} filtroInicial={filtroInicial} />
+        <Pagina navegar={navegar} filtroInicial={filtroInicial} perfil={perfil} user={user} />
       </main>
     </div>
   );

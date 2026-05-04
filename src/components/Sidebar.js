@@ -1,19 +1,23 @@
 import { C } from '../theme';
 
 const MENU = [
-  { id: 'dashboard',         label: 'Inicio',               icon: '📊' },
-  { id: 'solicitudesCompra', label: 'Solicitudes Compra',    icon: '🛒' },
-  { id: 'solicitudes',       label: 'Solicitudes Móvil',     icon: '📱' },
-  { id: 'retiroDirecto',     label: 'Retiro Directo',        icon: '📤' },
-  { id: 'devolucionDirecta', label: 'Devolución Directa',    icon: '↩️' },
-  { id: 'alertas',           label: 'Alertas',               icon: '🔔' },
-  { id: 'inventario',        label: 'Inventario',            icon: '📦' },
-  { id: 'historial',         label: 'Historial',             icon: '📋' },
-  { id: 'analisis',          label: 'Análisis',              icon: '📈' },
-  { id: 'importar',          label: 'Importar Excel',        icon: '⬆️' },
+  { id: 'dashboard',         label: 'Inicio',               icon: '📊', roles: ['admin', 'panol', 'mantencion', 'planta', 'externos'] },
+  { id: 'solicitudesCompra', label: 'Solicitudes Compra',    icon: '🛒', roles: ['admin', 'panol'] },
+  { id: 'solicitudes',       label: 'Solicitudes Móvil',     icon: '📱', roles: ['admin', 'panol'] },
+  { id: 'retiroDirecto',     label: 'Retiro Directo',        icon: '📤', roles: ['admin', 'panol'] },
+  { id: 'devolucionDirecta', label: 'Devolución Directa',    icon: '↩️', roles: ['admin', 'panol'] },
+  { id: 'alertas',           label: 'Alertas',               icon: '🔔', roles: ['admin', 'panol'] },
+  { id: 'inventario',        label: 'Inventario',            icon: '📦', roles: ['admin', 'panol', 'mantencion', 'planta', 'externos'] },
+  { id: 'conteo',            label: 'Conteo Inventario',     icon: '📋', roles: ['admin', 'panol'] },
+  { id: 'historial',         label: 'Historial',             icon: '📜', roles: ['admin', 'panol', 'mantencion'] },
+  { id: 'analisis',          label: 'Análisis',              icon: '📈', roles: ['admin', 'panol'] },
+  { id: 'importar',          label: 'Importar Excel',        icon: '⬆️', roles: ['admin'] },
 ];
 
-export default function Sidebar({ pagina, setPagina, onLogout }) {
+export default function Sidebar({ pagina, setPagina, onLogout, perfil }) {
+  const rolActual = perfil?.rol || 'mantencion';
+  const menuFiltrado = MENU.filter(item => item.roles.includes(rolActual));
+
   return (
     <div style={s.sidebar}>
       {/* Logo / Header */}
@@ -23,13 +27,14 @@ export default function Sidebar({ pagina, setPagina, onLogout }) {
         </div>
         <div>
           <div style={s.logoText}>PRYSMIAN</div>
-          <div style={s.logoSub}>Panel de Control</div>
+          <div style={s.logoSub}>{perfil?.nombre || 'Usuario'}</div>
+          <div style={{ fontSize: 9, color: C.primary, fontWeight: 700, textTransform: 'uppercase', marginTop: 2 }}>{rolActual}</div>
         </div>
       </div>
 
       {/* Menú */}
       <nav style={{ flex: 1, overflowY: 'auto' }}>
-        {MENU.map(item => {
+        {menuFiltrado.map(item => {
           const activo = pagina === item.id;
           return (
             <button

@@ -43,3 +43,11 @@ export async function verificarFichaExistente(ficha) {
   const querySnapshot = await getDocs(q);
   return !querySnapshot.empty;
 }
+/**
+ * Obtiene los datos del perfil del usuario desde Firestore.
+ */
+export async function getPerfilUsuario(uid) {
+  const docRef = doc(db, 'usuarios', uid);
+  const docSnap = await getDoc(docRef);
+  return docSnap.exists() ? docSnap.data() : null;
+}
