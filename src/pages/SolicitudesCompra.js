@@ -204,6 +204,36 @@ export default function SolicitudesCompra() {
               <div><div style={dl}>SOLICITANTE</div><div style={dv}>{detalle.usuario}</div></div>
               <div><div style={dl}>FECHA</div><div style={dv}>{fechaCorta(detalle.creadoEn)}</div></div>
               {detalle.caracteristicas && <div><div style={dl}>DETALLES</div><div style={{ background: C.background, borderLeft: `3px solid ${C.primary}`, padding: 12, borderRadius: 6, fontSize: 14, color: C.text, lineHeight: 1.6 }}>{detalle.caracteristicas}</div></div>}
+              
+              {detalle.fotografia && (
+                <div>
+                  <div style={dl}>FOTOGRAFÍA</div>
+                  <div style={{ marginTop: 8, position: 'relative' }}>
+                    <img 
+                      src={detalle.fotografia} 
+                      alt="Referencia" 
+                      style={{ width: '100%', borderRadius: 10, border: `1px solid ${C.border}`, maxHeight: 300, objectFit: 'contain', background: '#000' }} 
+                    />
+                    <div style={{ marginTop: 8, display: 'flex', gap: 10 }}>
+                      <a 
+                        href={detalle.fotografia} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 8, background: C.primary, color: '#fff', fontSize: 12, textDecoration: 'none', fontWeight: 600 }}
+                      >
+                        👁️ Ver tamaño completo
+                      </a>
+                      <a 
+                        href={detalle.fotografia} 
+                        download={`foto_${detalle.nombre}.jpg`}
+                        style={{ flex: 1, textAlign: 'center', padding: '8px', borderRadius: 8, background: '#f1f5f9', color: C.text, fontSize: 12, textDecoration: 'none', fontWeight: 600, border: `1px solid ${C.border}` }}
+                      >
+                        💾 Descargar Foto
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div>
                 <div style={{ ...dl, marginBottom: 10 }}>GESTIONAR ESTADO</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>

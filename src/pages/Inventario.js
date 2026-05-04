@@ -4,6 +4,11 @@ import { getMateriales, escucharMateriales, crearMaterial, editarMaterial, elimi
 
 const VACIO = { descripcion: '', ubicacion: '', stock: 0, puntoReorden: 0, codigoSAP: '', solicitado: false };
 
+function normalizar(str) {
+  return (str || '').toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
+}
+
+
 export default function Inventario({ filtroInicial = 'todos' }) {
   const [materiales, setMateriales] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +67,20 @@ export default function Inventario({ filtroInicial = 'todos' }) {
   function abrirEditar(m) { setForm({ descripcion: m.descripcion, ubicacion: m.ubicacion, stock: m.stock, puntoReorden: m.puntoReorden, codigoSAP: m.codigoSAP || '', solicitado: m.solicitado || false, _stockAnterior: m.stock }); setEditId(m.id); setModal('editar'); }
 
   async function guardar() {
+    if (!form.descripcion.trim()) { alert('El nombre es obligatorio'); return; }
+    
+    // BLOQUEO DE DUPLICADOS DE RAÍZ
+    const q = normalizar(form.descripcion);
+    const duplicado = materiales.find(m => {
+      const d = normalizar(m.descripcion);
+      return d === q || d.includes(q) || q.includes(d);
+    });
+
+    if (duplicado && modal === 'crear') {
+      alert(`❌ REGISTRO BLOQUEADO: No puedes agregar "${form.descripcion.trim()}" porque ya existe un repuesto igual o similar:\n\n"${duplicado.descripcion}"\n\nPor favor, busca el producto existente en la tabla.`);
+      return;
+    }
+
     setGuardando(true);
     try {
       const { _stockAnterior, ...resto } = form;
