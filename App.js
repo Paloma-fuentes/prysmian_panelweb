@@ -4,6 +4,7 @@ import { auth } from './src/config/firebase';
 import { font, C } from './src/theme';
 
 import Login             from './src/pages/Login';
+import Register          from './src/pages/Register';
 import Sidebar           from './src/components/Sidebar';
 import Dashboard         from './src/pages/Dashboard';
 import Inventario        from './src/pages/Inventario';
@@ -13,6 +14,8 @@ import Historial         from './src/pages/Historial';
 import Alertas           from './src/pages/Alertas';
 import Analisis          from './src/pages/Analisis';
 import ImportarExcel     from './src/pages/ImportarExcel';
+import RetiroDirecto     from './src/pages/RetiroDirecto';
+import DevolucionDirecta from './src/pages/DevolucionDirecta';
 
 const PAGINAS = {
   dashboard:         Dashboard,
@@ -23,12 +26,16 @@ const PAGINAS = {
   alertas:           Alertas,
   analisis:          Analisis,
   importar:          ImportarExcel,
+  retiroDirecto:     RetiroDirecto,
+  devolucionDirecta: DevolucionDirecta,
 };
 
 export default function App() {
   const [user, setUser]               = useState(undefined); // undefined = verificando
   const [pagina, setPagina]           = useState('dashboard');
   const [filtroInicial, setFiltroInicial] = useState('todos');
+  const [mostrarRegistro, setMostrarRegistro] = useState(false);
+  
   const Pagina = PAGINAS[pagina] || Dashboard;
 
   // Escuchar cambios de sesión de Firebase
@@ -49,8 +56,12 @@ export default function App() {
     </div>
   );
 
-  // Sin sesión → Login
-  if (!user) return <Login onLogin={setUser} />;
+  // Sin sesión → Login o Registro
+  if (!user) {
+    return mostrarRegistro 
+      ? <Register onSwitch={() => setMostrarRegistro(false)} />
+      : <Login onLogin={setUser} onSwitch={() => setMostrarRegistro(true)} />;
+  }
 
   // Con sesión → Panel
   return (

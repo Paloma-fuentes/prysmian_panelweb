@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { C, card } from '../theme';
+import { crearSolicitudCompra } from '../services/solicitudesCompraService';
 
 const PERIODOS = [
   { dias: 30,  label: '30 días'  },
@@ -61,6 +62,24 @@ export default function Analisis() {
     })
     .filter(m => m.consumoTotal > 0 && (m.stock === 0 || (m.diasRestantes !== null && m.diasRestantes < 60)))
     .sort((a, b) => (a.diasRestantes ?? 999) - (b.diasRestantes ?? 999));
+
+  async function handleComprar(m) {
+    if (!window.confirm(`¿Generar solicitud de compra automática para "${m.descripcion}"?`)) return;
+    try {
+      await crearSolicitudCompra({
+        nombre: m.descripcion,
+        codigoSAP: m.codigoSAP || '',
+        cantidad: Math.max(m.consumoTotal, 1),
+        urgencia: m.stock === 0 ? 'urgencia' : 'alta',
+        usuario: 'Sistema (Análisis Web)',
+        caracteristicas: `Generado automáticamente por bajo stock. Stock actual: ${m.stock}. Consumo últimos ${periodo} días: ${m.consumoTotal}.`,
+        estado: 'en espera'
+      });
+      alert('✅ Solicitud de compra creada con éxito.');
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  }
 
   // Sin rotación
   const movidos = new Set(retiros.map(h => h.materialId || h.producto));
@@ -142,7 +161,7 @@ export default function Analisis() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: C.background }}>
-                    {['Material', 'Stock', 'Consumo', 'Días restantes', 'Estado'].map(h => (
+                    {['Material', 'Stock', 'Consumo', 'Días restantes', 'Estado', 'Acción'].map(h => (
                       <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: C.textSecondary, letterSpacing: 0.5 }}>{h}</th>
                     ))}
                   </tr>
@@ -159,6 +178,14 @@ export default function Analisis() {
                         <td style={{ padding: '10px 12px', color: alertColor, fontWeight: 700 }}>{m.diasRestantes !== null ? `${m.diasRestantes}d` : '—'}</td>
                         <td style={{ padding: '10px 12px' }}>
                           <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 10, background: `${alertColor}20`, color: alertColor }}>{alerta}</span>
+                        </td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <button 
+                            onClick={() => handleComprar(m)}
+                            style={{ background: C.primary, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            🛒 Comprar
+                          </button>
                         </td>
                       </tr>
                     );

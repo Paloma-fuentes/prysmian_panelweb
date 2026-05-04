@@ -3,7 +3,9 @@ import { C } from '../theme';
 const MENU = [
   { id: 'dashboard',         label: 'Inicio',               icon: '📊' },
   { id: 'solicitudesCompra', label: 'Solicitudes Compra',    icon: '🛒' },
-  { id: 'solicitudes',       label: 'Retiros',               icon: '📤' },
+  { id: 'solicitudes',       label: 'Solicitudes Móvil',     icon: '📱' },
+  { id: 'retiroDirecto',     label: 'Retiro Directo',        icon: '📤' },
+  { id: 'devolucionDirecta', label: 'Devolución Directa',    icon: '↩️' },
   { id: 'alertas',           label: 'Alertas',               icon: '🔔' },
   { id: 'inventario',        label: 'Inventario',            icon: '📦' },
   { id: 'historial',         label: 'Historial',             icon: '📋' },
@@ -26,7 +28,7 @@ export default function Sidebar({ pagina, setPagina, onLogout }) {
       </div>
 
       {/* Menú */}
-      <nav style={{ flex: 1 }}>
+      <nav style={{ flex: 1, overflowY: 'auto' }}>
         {MENU.map(item => {
           const activo = pagina === item.id;
           return (
