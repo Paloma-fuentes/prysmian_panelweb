@@ -1,260 +1,214 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { C, card } from '../theme';
-import { crearSolicitudCompra } from '../services/solicitudesCompraService';
-
-const PERIODOS = [
-  { dias: 30,  label: '30 días'  },
-  { dias: 60,  label: '60 días'  },
-  { dias: 90,  label: '90 días'  },
-  { dias: 180, label: '6 meses'  },
-];
+import { C, G } from '../theme';
 
 export default function Analisis() {
-  const [loading, setLoading]      = useState(true);
-  const [periodo, setPeriodo]      = useState(30);
-  const [materiales, setMateriales]= useState([]);
-  const [historial, setHistorial]  = useState([]);
-  const [tabSel, setTabSel]        = useState(0); // 0=Stock crítico 1=Consumo 2=Sin rotación
+  const [maquinas, setMaquinas]     = useState([]);
+  const [historial, setHistorial]   = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [maquinaSel, setMaquinaSel] = useState(null);
 
   useEffect(() => {
-    async function cargar() {
-      const [matSnap, histSnap] = await Promise.all([
-        getDocs(collection(db, 'materiales')),
-        getDocs(query(collection(db, 'historial'), orderBy('fecha', 'desc'))),
-      ]);
-      setMateriales(matSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setHistorial(histSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    }
     cargar();
   }, []);
 
-  const corte = new Date(Date.now() - periodo * 86_400_000);
-
-  // Consumo por material en el periodo
-  const retiros = historial.filter(h => {
-    const f = h.fecha?.toDate ? h.fecha.toDate() : new Date(h.fecha || 0);
-    return h.tipo === 'retiro' && f >= corte;
-  });
-
-  const consumoPorMat = {};
-  retiros.forEach(h => {
-    const key = h.materialId || h.producto;
-    if (!consumoPorMat[key]) consumoPorMat[key] = { nombre: h.producto, total: 0, retiros: 0 };
-    consumoPorMat[key].total   += Number(h.cantidad) || 0;
-    consumoPorMat[key].retiros += 1;
-  });
-
-  const rankConsumo = Object.values(consumoPorMat)
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 20);
-
-  // Stock crítico
-  const maxConsumo = Math.max(...Object.values(consumoPorMat).map(c => c.total), 1);
-  const stockCritico = materiales
-    .map(m => {
-      const consumo = consumoPorMat[m.id]?.total || consumoPorMat[m.descripcion]?.total || 0;
-      const stock   = m.stock ?? 0;
-      const dias    = consumo > 0 ? Math.round((stock / consumo) * periodo) : null;
-      return { ...m, consumoTotal: consumo, diasRestantes: dias };
-    })
-    .filter(m => m.consumoTotal > 0 && (m.stock === 0 || (m.diasRestantes !== null && m.diasRestantes < 60)))
-    .sort((a, b) => (a.diasRestantes ?? 999) - (b.diasRestantes ?? 999));
-
-  async function handleComprar(m) {
-    if (!window.confirm(`¿Generar solicitud de compra automática para "${m.descripcion}"?`)) return;
+  async function cargar() {
+    setLoading(true);
     try {
-      await crearSolicitudCompra({
-        nombre: m.descripcion,
-        codigoSAP: m.codigoSAP || '',
-        cantidad: Math.max(m.consumoTotal, 1),
-        urgencia: m.stock === 0 ? 'urgencia' : 'alta',
-        usuario: 'Sistema (Análisis Web)',
-        caracteristicas: `Generado automáticamente por bajo stock. Stock actual: ${m.stock}. Consumo últimos ${periodo} días: ${m.consumoTotal}.`,
-        estado: 'en espera'
+      const histSnap = await getDocs(query(collection(db, 'historial'), orderBy('fecha', 'desc'), limit(1500)));
+      const hist = histSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setHistorial(hist);
+
+      const totalMap = {};
+      const recienteMap = {};
+      const anteriorMap = {};
+
+      const mitad = Math.floor(hist.length / 2);
+      const reciente = hist.slice(0, mitad);
+      const anterior = hist.slice(mitad);
+
+      hist.forEach(h => {
+        if (!h.maquina || h.maquina === 'N/A') return;
+        const m = h.maquina.trim();
+        totalMap[m] = (totalMap[m] || 0) + (Number(h.cantidad) || 1);
       });
-      alert('✅ Solicitud de compra creada con éxito.');
+
+      reciente.forEach(h => {
+        if (!h.maquina || h.maquina === 'N/A') return;
+        const m = h.maquina.trim();
+        recienteMap[m] = (recienteMap[m] || 0) + 1;
+      });
+
+      anterior.forEach(h => {
+        if (!h.maquina || h.maquina === 'N/A') return;
+        const m = h.maquina.trim();
+        anteriorMap[m] = (anteriorMap[m] || 0) + 1;
+      });
+
+      const lista = Object.entries(totalMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 15)
+        .map(([nombre, total]) => {
+          const r = recienteMap[nombre] || 0;
+          const a = anteriorMap[nombre] || 0;
+          const tendencia = r > a ? 'sube' : r < a ? 'baja' : 'estable';
+          const ultimoReg = hist.find(h => h.maquina?.trim() === nombre);
+          const ultimaFecha = ultimoReg?.fecha?.toDate ? ultimoReg.fecha.toDate() : null;
+          return { nombre, total, tendencia, ultimaFecha };
+        });
+
+      setMaquinas(lista);
     } catch (e) {
-      alert('Error: ' + e.message);
+      console.error(e);
+    } finally {
+      setLoading(false);
     }
   }
 
-  // Sin rotación
-  const movidos = new Set(retiros.map(h => h.materialId || h.producto));
-  const sinRotacion = materiales
-    .filter(m => m.stock > 0 && !movidos.has(m.id) && !movidos.has(m.descripcion))
-    .sort((a, b) => b.stock - a.stock);
+  const maxVal = maquinas[0]?.total || 1;
 
-  const TABS = [
-    { label: `Stock Crítico (${stockCritico.length})`, key: 0 },
-    { label: `Consumo Top (${rankConsumo.length})`,    key: 1 },
-    { label: `Sin Rotación (${sinRotacion.length})`,   key: 2 },
-  ];
+  // Lógica para el gráfico del modal
+  function getDatosGrafico(maqNombre) {
+    const meses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const hoy = new Date();
+    const ultimos6 = [];
+    
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+      ultimos6.push({ 
+        mes: meses[d.getMonth()], 
+        anio: d.getFullYear(), 
+        total: 0,
+        id: `${d.getFullYear()}-${d.getMonth()}`
+      });
+    }
 
-  if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
-      <div style={{ textAlign: 'center', color: C.textLight }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>📈</div>
-        <div>Calculando análisis...</div>
-      </div>
-    </div>
-  );
+    historial
+      .filter(h => h.maquina?.trim() === maqNombre)
+      .forEach(h => {
+        const f = h.fecha?.toDate ? h.fecha.toDate() : new Date(h.fecha || 0);
+        const id = `${f.getFullYear()}-${f.getMonth()}`;
+        const slot = ultimos6.find(s => s.id === id);
+        if (slot) slot.total += Number(h.cantidad) || 1;
+      });
+
+    return ultimos6;
+  }
 
   return (
-    <div style={{ color: C.text }}>
-      {/* Header */}
-      <div style={{ padding: '20px 28px 16px', background: C.secondary }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>Análisis Técnico de Stock</div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>Consumo, rotación y durabilidad estimada</div>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100vh', background: '#F8FAFC' }}>
+      <header style={{ padding: '40px 40px 20px', background: '#fff', borderBottom: `1px solid ${C.border}` }}>
+        <h1 style={{ fontSize: 28, fontWeight: 900, color: C.secondary, margin: 0 }}>Dashboard de Máquinas</h1>
+        <p style={{ fontSize: 14, color: C.textSecondary, marginTop: 4 }}>Análisis de rendimiento y frecuencia de fallas por equipo</p>
+      </header>
 
-      <div style={{ padding: '16px 28px' }}>
-        {/* Selector periodo */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          {PERIODOS.map(p => (
-            <button
-              key={p.dias}
-              style={{ padding: '7px 16px', borderRadius: 20, border: `1px solid ${C.border}`, background: periodo === p.dias ? C.primary : C.surface, color: periodo === p.dias ? '#fff' : C.textSecondary, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
-              onClick={() => setPeriodo(p.dias)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
+      <main style={{ padding: '40px', width: '100%', boxSizing: 'border-box' }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 100 }}>Generando reportes técnicos...</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: 20 }}>
+            {maquinas.map((maq, i) => {
+              const pct = Math.max(5, Math.round((maq.total / maxVal) * 100));
+              const barColor = i === 0 ? '#ef4444' : i === 1 ? '#f97316' : i === 2 ? '#eab308' : C.primary;
+              const { icon, color, label } = 
+                maq.tendencia === 'sube' ? { icon: '📈', color: '#ef4444', label: 'Alta' } :
+                maq.tendencia === 'baja' ? { icon: '📉', color: '#10b981', label: 'Baja' } :
+                                           { icon: '➖', color: '#94a3b8', label: 'Estable' };
 
-        {/* KPIs rápidos */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-          {[
-            { label: 'Retiros en periodo', valor: retiros.length,         color: C.primary },
-            { label: 'Materiales activos', valor: Object.keys(consumoPorMat).length, color: C.success },
-            { label: 'Stock crítico',      valor: stockCritico.length,    color: C.error   },
-            { label: 'Sin rotación',       valor: sinRotacion.length,     color: '#8b5cf6' },
-          ].map(k => (
-            <div key={k.label} style={{ ...card, flex: 1, minWidth: 120, borderLeft: `4px solid ${k.color}`, marginBottom: 0 }}>
-              <div style={{ fontSize: 26, fontWeight: 800, color: k.color }}>{k.valor}</div>
-              <div style={{ fontSize: 12, color: C.textSecondary, marginTop: 4 }}>{k.label}</div>
-            </div>
-          ))}
-        </div>
+              return (
+                <div 
+                  key={maq.nombre} 
+                  onClick={() => setMaquinaSel(maq)}
+                  style={{ ...G.glass, background: '#fff', padding: '25px', borderRadius: 24, boxShadow: G.cardShadow, cursor: 'pointer', transition: '0.2s', border: `1px solid transparent` }}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = C.primary}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'transparent'}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 15, marginBottom: 15 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 10, background: C.secondary, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900 }}>{i + 1}</div>
+                    <div style={{ flex: 1, fontSize: 18, fontWeight: 800, color: C.secondary }}>{maq.nombre}</div>
+                    <div style={{ textAlign: 'right' }}>
+                       <div style={{ fontSize: 18 }}>{icon}</div>
+                       <div style={{ fontSize: 10, fontWeight: 900, color }}>{label.toUpperCase()}</div>
+                    </div>
+                  </div>
 
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, borderBottom: `2px solid ${C.border}`, marginBottom: 16 }}>
-          {TABS.map(t => (
-            <button
-              key={t.key}
-              style={{ padding: '10px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: tabSel === t.key ? C.primary : C.textSecondary, borderBottom: tabSel === t.key ? `3px solid ${C.primary}` : '3px solid transparent', marginBottom: -2 }}
-              onClick={() => setTabSel(t.key)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+                  <div style={{ height: 12, background: '#F1F5F9', borderRadius: 6, overflow: 'hidden', marginBottom: 15 }}>
+                    <div style={{ width: `${pct}%`, height: '100%', background: barColor, borderRadius: 6, transition: 'width 1s ease-out' }} />
+                  </div>
 
-        {/* Tab: Stock Crítico */}
-        {tabSel === 0 && (
-          <div style={card}>
-            {stockCritico.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 40, color: C.textLight }}>✅ Sin materiales en stock crítico</div>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: C.background }}>
-                    {['Material', 'Stock', 'Consumo', 'Días restantes', 'Estado', 'Acción'].map(h => (
-                      <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: C.textSecondary, letterSpacing: 0.5 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {stockCritico.map((m, i) => {
-                    const alerta = m.stock === 0 ? 'SIN STOCK' : m.diasRestantes < 14 ? 'CRÍTICO' : m.diasRestantes < 30 ? 'BAJO' : 'CUIDADO';
-                    const alertColor = m.stock === 0 ? C.error : m.diasRestantes < 14 ? C.urgent : m.diasRestantes < 30 ? C.warning : '#f59e0b';
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: C.textSecondary }}>{maq.total} retiros</div>
+                    <div style={{ fontSize: 12, color: C.textLight }}>Último: {maq.ultimaFecha?.toLocaleDateString('es-CL') || '—'}</div>
+                    <div style={{ color: C.primary, fontSize: 12, fontWeight: 800 }}>Ver historial ›</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </main>
+
+      {/* MODAL DE INFORME CON GRÁFICOS */}
+      {maquinaSel && (
+        <div style={s.modalOverlay}>
+          <div style={s.modalBox}>
+             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 25 }}>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: 24, fontWeight: 900 }}>Informe de Actividad</h2>
+                  <div style={{ color: C.primary, fontWeight: 800, marginTop: 5, fontSize: 18 }}>{maquinaSel.nombre}</div>
+                </div>
+                <button onClick={() => setMaquinaSel(null)} style={s.closeBtn}>✕</button>
+             </header>
+
+             {/* GRÁFICO DE BARRAS CUSTOM */}
+             <div style={{ marginBottom: 35 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: C.textLight, letterSpacing: 1, marginBottom: 20 }}>TENDENCIA DE RETIROS (ÚLTIMOS 6 MESES)</div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: 150, background: '#F8FAFC', borderRadius: 20, padding: '20px 30px' }}>
+                  {getDatosGrafico(maquinaSel.nombre).map(d => {
+                    const maxM = Math.max(...getDatosGrafico(maquinaSel.nombre).map(x => x.total), 1);
+                    const hPct = (d.total / maxM) * 100;
                     return (
-                      <tr key={m.id} style={{ borderBottom: `1px solid ${C.border}`, background: i % 2 === 0 ? '#fff' : C.background }}>
-                        <td style={{ padding: '10px 12px', fontWeight: 500 }}>{m.descripcion}</td>
-                        <td style={{ padding: '10px 12px', fontWeight: 700, color: m.stock === 0 ? C.error : C.text }}>{m.stock}</td>
-                        <td style={{ padding: '10px 12px', color: C.textSecondary }}>{m.consumoTotal}</td>
-                        <td style={{ padding: '10px 12px', color: alertColor, fontWeight: 700 }}>{m.diasRestantes !== null ? `${m.diasRestantes}d` : '—'}</td>
-                        <td style={{ padding: '10px 12px' }}>
-                          <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 10, background: `${alertColor}20`, color: alertColor }}>{alerta}</span>
-                        </td>
-                        <td style={{ padding: '10px 12px' }}>
-                          <button 
-                            onClick={() => handleComprar(m)}
-                            style={{ background: C.primary, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
-                          >
-                            🛒 Comprar
-                          </button>
-                        </td>
-                      </tr>
+                      <div key={d.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                        <div style={{ position: 'relative', width: 24, height: 100, background: 'rgba(15,23,42,0.03)', borderRadius: 12, display: 'flex', alignItems: 'flex-end', overflow: 'hidden' }}>
+                           <div style={{ width: '100%', height: `${hPct}%`, background: C.primary, borderRadius: 12, transition: 'height 0.5s' }} />
+                        </div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: C.textSecondary, marginTop: 10 }}>{d.mes}</div>
+                        <div style={{ fontSize: 10, fontWeight: 900, color: C.primary }}>{d.total}</div>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
+                </div>
+             </div>
 
-        {/* Tab: Consumo */}
-        {tabSel === 1 && (
-          <div style={card}>
-            {rankConsumo.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 40, color: C.textLight }}>Sin retiros en el periodo</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {rankConsumo.map((m, i) => {
-                  const pct = Math.round((m.total / rankConsumo[0].total) * 100);
-                  return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 14, background: i < 3 ? C.primary : C.border, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: i < 3 ? '#fff' : C.textSecondary, flexShrink: 0 }}>{i + 1}</div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.nombre}</div>
-                        <div style={{ height: 6, background: C.border, borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ height: 6, width: `${pct}%`, background: C.primary, borderRadius: 3 }} />
+             <div style={{ fontSize: 12, fontWeight: 800, color: C.textLight, letterSpacing: 1, marginBottom: 15 }}>HISTORIAL COMPLETO DE MOVIMIENTOS</div>
+             <div style={{ height: 300, overflowY: 'auto', paddingRight: 10 }}>
+                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {historial.filter(h => h.maquina?.trim() === maquinaSel.nombre).map(h => (
+                      <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12 }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: C.secondary }}>{h.producto}</div>
+                          <div style={{ fontSize: 11, color: C.textLight, marginTop: 3 }}>{h.usuario} • {h.fecha?.toDate?.().toLocaleString('es-CL')}</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontWeight: 900, color: h.tipo === 'retiro' ? C.primary : C.success }}>{h.tipo === 'retiro' ? '-' : '+'}{h.cantidad}</div>
+                          <div style={{ fontSize: 9, fontWeight: 900, color: C.textLight }}>{h.tipo?.toUpperCase()}</div>
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: C.primary }}>{m.total}</div>
-                        <div style={{ fontSize: 11, color: C.textLight }}>{m.retiros} retiros</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Tab: Sin Rotación */}
-        {tabSel === 2 && (
-          <div style={card}>
-            {sinRotacion.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 40, color: C.textLight }}>✅ Todos los materiales tienen movimiento</div>
-            ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                <thead>
-                  <tr style={{ background: C.background }}>
-                    {['Material', 'Stock', 'Ubicación', 'Tipo'].map(h => (
-                      <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: C.textSecondary }}>{h}</th>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sinRotacion.map((m, i) => (
-                    <tr key={m.id} style={{ borderBottom: `1px solid ${C.border}`, background: i % 2 === 0 ? '#fff' : C.background }}>
-                      <td style={{ padding: '10px 12px', fontWeight: 500 }}>{m.descripcion}</td>
-                      <td style={{ padding: '10px 12px', fontWeight: 700, color: '#8b5cf6' }}>{m.stock}</td>
-                      <td style={{ padding: '10px 12px', color: C.textSecondary }}>{m.ubicacion || '—'}</td>
-                      <td style={{ padding: '10px 12px', color: C.textSecondary }}>{m.tipoMaterial || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                 </div>
+             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
+
+const s = {
+  modalOverlay: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(15,23,42,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(10px)' },
+  modalBox: { background: '#fff', width: '90%', maxWidth: 700, borderRadius: 32, padding: 40, boxShadow: G.cardShadowLg },
+  closeBtn: { background: '#F1F5F9', border: 'none', width: 40, height: 40, borderRadius: 20, cursor: 'pointer', fontSize: 18, fontWeight: 800, color: C.textSecondary },
+  tab: { flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: '#F1F5F9', color: C.textSecondary, fontWeight: 700, cursor: 'pointer' },
+  tabAct: { background: C.primary, color: '#fff' }
+};

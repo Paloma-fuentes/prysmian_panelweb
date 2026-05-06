@@ -51,8 +51,20 @@ export async function getKPIs() {
   );
   const sinRotacion = materiales.filter(m => m.stock > 0 && !productosMovidos.has(m.descripcion));
 
+  // --- Sugerencias de Compra (Materiales con bajo stock) ---
+  const sugerenciasCompra = materiales
+    .filter(m => m.stock <= (m.stockMinimo || 2) || m.bajoStock)
+    .map(m => ({ id: m.id, nombre: m.descripcion, stock: m.stock, min: m.stockMinimo || 2 }))
+    .slice(0, 5);
+
+  // --- Más solicitados del mes (Lista detallada) ---
+  const topProductosLista = Object.entries(porProducto)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([nombre, cantidad]) => ({ nombre, cantidad }));
+
   // --- Últimos movimientos ---
-  const ultimosMovimientos = historial.slice(0, 10);
+  const ultimosMovimientos = historial.slice(0, 20);
 
   const comprasUrgentes = comprasSnap.docs.filter(d => d.data().urgencia === 'urgencia').length;
 
@@ -66,7 +78,9 @@ export async function getKPIs() {
     comprasEnEspera:       comprasSnap.docs.length,
     comprasUrgentes,
     topProducto: topProducto ? { nombre: topProducto[0], cantidad: topProducto[1] } : null,
+    topProductosLista,
     topMaquinas,
+    sugerenciasCompra,
     sinRotacion: sinRotacion.length,
     sinRotacionLista: sinRotacion.slice(0, 10),
     ultimosMovimientos,

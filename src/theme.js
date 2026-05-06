@@ -1,31 +1,51 @@
 export const C = {
-  primary:       '#F4821F',
-  primaryDark:   '#C4610E',
-  secondary:     '#1A1A2E',
-  background:    '#F5F5F5',
+  // Brand Colors
+  primary:       '#F4821F',      // Prysmian Orange
+  primaryLight:  '#FF9D4D',
+  primaryDark:   '#D36A15',
+  secondary:     '#0F172A',      // Deep Slate/Navy
+  accent:        '#38BDF8',      // Sky Blue para acentos
+  
+  // UI Colors
+  background:    '#F8FAFC',      // Soft Grey Blue
   surface:       '#FFFFFF',
-  border:        '#E0E0E0',
-  text:          '#1A1A1A',
-  textSecondary: '#666666',
-  textLight:     '#999999',
-  success:       '#2E7D32',
-  successLight:  '#E8F5E9',
-  warning:       '#F57C00',
-  warningLight:  '#FFF3E0',
-  error:         '#C62828',
-  errorLight:    '#FFEBEE',
-  urgent:        '#D32F2F',
+  surfaceAlt:    '#F1F5F9',
+  border:        '#E2E8F0',
+  
+  // States
+  success:       '#10B981',      // Emerald
+  successLight:  '#D1FAE5',
+  warning:       '#F59E0B',      // Amber
+  warningLight:  '#FEF3C7',
+  error:         '#EF4444',      // Red
+  errorLight:    '#FEE2E2',
+  info:          '#3B82F6',      // Blue
+  infoLight:     '#DBEAFE',
+  
+  // Text
+  text:          '#1E293B',      // Slate 800
+  textSecondary: '#64748B',      // Slate 500
+  textLight:     '#94A3B8',      // Slate 400
+  white:         '#FFFFFF',
 };
 
-export const card = {
-  background: C.surface,
-  borderRadius: 10,
-  padding: 16,
-  marginBottom: 16,
-  boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
-  border: `1px solid ${C.border}`,
+export const G = {
+  glass: {
+    background: 'rgba(255, 255, 255, 0.7)',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
+    border: '1px solid rgba(255, 255, 255, 0.3)',
+  },
+  glassDark: {
+    background: 'rgba(15, 23, 42, 0.8)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+  },
+  cardShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+  cardShadowLg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
 };
 
 export const font = {
-  family: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  family: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
 };

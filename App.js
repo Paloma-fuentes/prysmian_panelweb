@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './src/config/firebase';
 import { getPerfilUsuario } from './src/services/authService';
@@ -11,22 +11,24 @@ import Dashboard         from './src/pages/Dashboard';
 import Inventario        from './src/pages/Inventario';
 import Solicitudes       from './src/pages/Solicitudes';
 import SolicitudesCompra from './src/pages/SolicitudesCompra';
-import Historial         from './src/pages/Historial';
 import Alertas           from './src/pages/Alertas';
 import Analisis          from './src/pages/Analisis';
+import GuiaCorreas       from './src/pages/GuiaCorreas';
 import ImportarExcel     from './src/pages/ImportarExcel';
 import RetiroDirecto     from './src/pages/RetiroDirecto';
 import DevolucionDirecta from './src/pages/DevolucionDirecta';
 import ConteoInventario  from './src/pages/ConteoInventario';
+import CrearCompra       from './src/pages/CrearCompra';
 
 const PAGINAS = {
   dashboard:         Dashboard,
   inventario:        Inventario,
   solicitudes:       Solicitudes,
+  crearCompra:       CrearCompra,
   solicitudesCompra: SolicitudesCompra,
-  historial:         Historial,
   alertas:           Alertas,
   analisis:          Analisis,
+  guiaCorreas:       GuiaCorreas,
   importar:          ImportarExcel,
   retiroDirecto:     RetiroDirecto,
   devolucionDirecta: DevolucionDirecta,
@@ -40,15 +42,21 @@ export default function App() {
   const [filtroInicial, setFiltroInicial] = useState('todos');
   const [mostrarRegistro, setMostrarRegistro] = useState(false);
   
+  const mainRef = useRef(null);
   const Pagina = PAGINAS[pagina] || Dashboard;
 
   // Escuchar cambios de sesión de Firebase
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async u => {
       if (u) {
-        const p = await getPerfilUsuario(u.uid);
-        setPerfil(p);
-        setUser(u);
+        try {
+          const p = await getPerfilUsuario(u.uid);
+          setPerfil(p);
+          setUser(u);
+        } catch (e) {
+          console.error("Error al obtener perfil:", e);
+          setUser(u); // Al menos dejamos al usuario logueado
+        }
       } else {
         setPerfil(null);
         setUser(null);
@@ -56,6 +64,10 @@ export default function App() {
     });
     return unsub;
   }, []);
+
+  useEffect(() => {
+    if (mainRef.current) mainRef.current.scrollTo(0, 0);
+  }, [pagina]);
 
   function navegar(nuevaPagina, filtro = 'todos') {
     setFiltroInicial(filtro);
@@ -78,9 +90,12 @@ export default function App() {
 
   // Con sesión → Panel
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: '#F5F5F5', fontFamily: font.family }}>
-      <Sidebar pagina={pagina} setPagina={setPagina} onLogout={() => signOut(auth)} perfil={perfil} />
-      <main style={{ flex: 1, minWidth: 0, overflowY: 'auto', height: '100vh', background: '#F5F5F5' }}>
+    <div style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden', background: '#F5F5F7', fontFamily: font.family }}>
+      <Sidebar pagina={pagina} setPagina={setPagina} navegar={navegar} onLogout={() => signOut(auth)} perfil={perfil} />
+      <main 
+        ref={mainRef} 
+        style={{ flex: 1, minWidth: 0, overflowY: 'auto', height: '100vh', background: '#F5F5F7', position: 'relative' }}
+      >
         <Pagina navegar={navegar} filtroInicial={filtroInicial} perfil={perfil} user={user} />
       </main>
     </div>

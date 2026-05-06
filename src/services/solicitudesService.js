@@ -10,6 +10,7 @@ import {
   onSnapshot, query, orderBy, limit, serverTimestamp, increment, writeBatch,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { notificarPanol, notificarUsuario } from './notificacionesService';
 
 const COL  = 'solicitudes';
 const MAT  = 'materiales';
@@ -31,24 +32,34 @@ export async function getSolicitudes(limite = 300) {
 }
 
 // ── Crear retiro (mismos campos que la app móvil) ──────────────────────────
-export async function crearSolicitud({ producto, materialId, cantidad, maquina, parteMaquina, usuario, notas = '' }) {
-  return await addDoc(collection(db, COL), {
+export async function crearSolicitud({ producto, materialId, cantidad, maquina, parteMaquina, usuario, solicitanteUid, notas = '' }) {
+  const ref = await addDoc(collection(db, COL), {
     producto,
     materialId:   materialId || '',
     cantidad:     Number(cantidad),
     maquina:      maquina      || 'N/A',
     parteMaquina: parteMaquina || 'General',
     usuario:      usuario      || '',
-    notas,
+    solicitanteUid: solicitanteUid || '',
     tipo:         'retiro',
-    estado:       'pendiente_entrega',   // igual que móvil
-    creadoEn:     serverTimestamp(),     // igual que móvil
+    estado:       'pendiente_entrega',
+    creadoEn:     serverTimestamp(),
     actualizadoEn: serverTimestamp(),
+    notas,
   });
+
+  // Notificar al Pañol
+  notificarPanol(
+    '📦 Nueva Solicitud (Web)',
+    `${usuario} solicita ${cantidad}x ${producto} para ${maquina}.`,
+    { tipo: 'retiro' }
+  ).catch(() => {});
+
+  return ref;
 }
 
 // ── Confirmar entrega (pañol entrega físicamente) ──────────────────────────
-export async function entregarSolicitud(solicitudId, { materialId, producto, cantidad, maquina, parteMaquina, usuario }) {
+export async function entregarSolicitud(solicitudId, { materialId, producto, cantidad, maquina, parteMaquina, usuario, solicitanteUid }) {
   const batch = writeBatch(db);
   batch.update(doc(db, COL, solicitudId), {
     estado:        'entregado',
@@ -74,6 +85,16 @@ export async function entregarSolicitud(solicitudId, { materialId, producto, can
     fecha:        serverTimestamp(),
   });
   await batch.commit();
+
+  // Notificar al Usuario
+  if (solicitanteUid) {
+    notificarUsuario(
+      solicitanteUid,
+      '✅ Retiro Entregado',
+      `Tu solicitud de ${cantidad}x ${producto} ha sido entregada.`,
+      { tipo: 'retiro_confirmado' }
+    ).catch(() => {});
+  }
 }
 
 // ── Cancelar ────────────────────────────────────────────────────────────────
@@ -119,13 +140,61 @@ export async function retornarSolicitud(solicitudId, { materialId, producto, can
   await batch.commit();
 }
 
-// ── Editar / Eliminar ───────────────────────────────────────────────────────
-export async function editarSolicitud(id, datos) {
-  await updateDoc(doc(db, COL, id), { ...datos, actualizadoEn: serverTimestamp() });
+// ── Editar con ajuste de stock ─────────────────────────────────────────────
+export async function editarSolicitudConStock(id, datosNuevos, solicitudOriginal) {
+  const batch = writeBatch(db);
+  
+  // Si ya fue entregado, hay que ajustar el stock físico
+  if (solicitudOriginal.estado === 'entregado' && solicitudOriginal.materialId) {
+    const diff = Number(solicitudOriginal.cantidad) - Number(datosNuevos.cantidad);
+    if (diff !== 0) {
+      batch.update(doc(db, MAT, solicitudOriginal.materialId), {
+        stock: increment(diff),
+        actualizadoEn: serverTimestamp(),
+      });
+      // Registrar en historial el ajuste
+      batch.set(doc(collection(db, HIST)), {
+        tipo: 'ajuste_edicion',
+        producto: solicitudOriginal.producto,
+        cantidad: Math.abs(diff),
+        detalle: diff > 0 ? 'Devolución por edición' : 'Retiro por edición',
+        fecha: serverTimestamp(),
+        usuario: datosNuevos.usuario || 'Sistema'
+      });
+    }
+  }
+
+  batch.update(doc(db, COL, id), { 
+    ...datosNuevos, 
+    actualizadoEn: serverTimestamp() 
+  });
+
+  await batch.commit();
 }
 
-export async function eliminarSolicitud(id) {
-  await deleteDoc(doc(db, COL, id));
+// ── Eliminar con retorno de stock ───────────────────────────────────────────
+export async function eliminarSolicitudConStock(solicitud) {
+  const batch = writeBatch(db);
+  
+  // Si ya estaba entregado, devolvemos el stock al almacén
+  if (solicitud.estado === 'entregado' && solicitud.materialId) {
+    batch.update(doc(db, MAT, solicitud.materialId), {
+      stock: increment(Number(solicitud.cantidad)),
+      actualizadoEn: serverTimestamp(),
+    });
+    // Registrar la devolución automática en historial
+    batch.set(doc(collection(db, HIST)), {
+      tipo: 'devolucion_por_borrado',
+      producto: solicitud.producto,
+      cantidad: Number(solicitud.cantidad),
+      usuario: solicitud.usuario,
+      fecha: serverTimestamp(),
+      notas: 'Stock retornado por eliminación de registro en panel web'
+    });
+  }
+
+  batch.delete(doc(db, COL, solicitud.id));
+  await batch.commit();
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

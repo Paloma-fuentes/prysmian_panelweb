@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
-import { C } from '../theme';
+import { useState } from 'react';
+import { C, G } from '../theme';
 import BuscadorWeb from '../components/BuscadorWeb';
-import { entregarSolicitud, crearSolicitud } from '../services/solicitudesService';
-import { getUsuariosPanel } from '../services/solicitudesService';
+import { crearSolicitud } from '../services/solicitudesService';
 
 const MAQUINAS = [
   '26 - Trefiladora FX13', '27 - Trefiladora Niehoff M-85',
@@ -39,44 +38,107 @@ const MAQUINAS = [
   'N/A',
 ];
 
-export default function RetiroDirecto() {
+const UNIDADES = ['UND', 'KG', 'MTS'];
+
+export default function RetiroDirecto({ perfil }) {
+  const [items, setItems] = useState([]);
   const [producto, setProducto] = useState(null);
-  const [cantidad, setCantidad] = useState(1);
-  const [maquina, setMaquina]   = useState('');
-  const [usuario, setUsuario]   = useState('');
-  const [usuarios, setUsuarios] = useState([]);
+  const [cantidad, setCantidad] = useState('');
+  const [unidad, setUnidad] = useState('UND');
+  const [maquina, setMaquina] = useState('');
+  const [parte, setParte] = useState('');
+  const [ubicacion, setUbicacion] = useState('');
+  const [notas, setNotas] = useState('');
   const [guardando, setGuardando] = useState(false);
 
-  useEffect(() => {
-    getUsuariosPanel().then(setUsuarios);
-  }, []);
+  function manejarSeleccionProducto(p) {
+    setProducto(p);
+    if (p?.ubicacion) setUbicacion(p.ubicacion);
+    if (p?.unidad) setUnidad(p.unidad);
+  }
 
-  async function handleConfirmar() {
-    if (!producto) { alert('Selecciona un producto primero'); return; }
-    if (!usuario) { alert('Selecciona el usuario que retira'); return; }
-    if (cantidad <= 0) { alert('La cantidad debe ser mayor a 0'); return; }
-    if (cantidad > producto.stock) { alert(`No hay stock suficiente. Disponible: ${producto.stock}`); return; }
+  function agregarOtro() {
+    if (!producto || !cantidad || !maquina || !parte) {
+      alert('Por favor completa los campos obligatorios (*) antes de agregar otro repuesto.');
+      return;
+    }
+    
+    const nuevoItem = {
+      id: Date.now(),
+      producto: producto.descripcion,
+      materialId: producto.id,
+      cantidad: Number(cantidad),
+      unidad,
+      maquina,
+      parte,
+      ubicacion,
+      notas
+    };
 
-    if (!window.confirm(`¿Confirmar retiro de ${cantidad} unidades de "${producto.descripcion}"?`)) return;
+    setItems([...items, nuevoItem]);
+    
+    // Limpiar campos para el siguiente repuesto, manteniendo máquina y parte
+    setProducto(null);
+    setCantidad('');
+    setNotas('');
+    // El usuario suele retirar varias cosas para la misma máquina/parte
+  }
+
+  function quitarItem(id) {
+    setItems(items.filter(i => i.id !== id));
+  }
+
+  async function handleEnviar() {
+    const listaFinal = [...items];
+    
+    // Si hay un item actual en el form, incluirlo
+    if (producto && cantidad) {
+      if (!maquina) {
+        alert('Completa la Máquina antes de enviar.');
+        return;
+      }
+      listaFinal.push({
+        producto: producto.descripcion,
+        materialId: producto.id,
+        cantidad: Number(cantidad),
+        unidad,
+        maquina,
+        parte: parte || 'General',
+        ubicacion,
+        notas
+      });
+    }
+
+    if (listaFinal.length === 0) {
+      alert('Debes agregar al menos un repuesto.');
+      return;
+    }
 
     setGuardando(true);
     try {
-      // 1. Crear solicitud como "entregada" (lo cual descuenta stock automáticamente en el servicio)
-      await entregarSolicitud(null, {
-        materialId: producto.id,
-        producto: producto.descripcion,
-        cantidad: Number(cantidad),
-        maquina: maquina || 'N/A',
-        usuario: usuario,
-        codigoSAP: producto.codigoSAP || '',
-        esDirecto: true // Marca para saber que fue desde el panel web directo
-      });
-
-      alert('✅ Retiro registrado y stock actualizado con éxito.');
+      for (const item of listaFinal) {
+        await crearSolicitud({
+          producto: item.producto,
+          materialId: item.materialId,
+          cantidad: item.cantidad,
+          unidad: item.unidad,
+          maquina: item.maquina,
+          parteMaquina: item.parte,
+          ubicacion: item.ubicacion,
+          notas: item.notas,
+          usuario: perfil?.nombre || 'Web User',
+          solicitanteUid: perfil?.id || perfil?.uid || ''
+        });
+      }
+      
+      alert('🚀 Solicitud enviada correctamente al pañol.');
+      setItems([]);
       setProducto(null);
-      setCantidad(1);
+      setCantidad('');
       setMaquina('');
-      setUsuario('');
+      setParte('');
+      setUbicacion('');
+      setNotas('');
     } catch (e) {
       alert('Error: ' + e.message);
     } finally {
@@ -85,65 +147,115 @@ export default function RetiroDirecto() {
   }
 
   return (
-    <div style={s.container}>
-      <div style={s.header}>
-        <h1 style={s.titulo}>Retiro Directo de Repuestos</h1>
-        <p style={s.sub}>Descuenta stock inmediatamente sin pasar por solicitudes pendientes</p>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100vh', background: '#F5F5F7' }}>
+      <header style={{ padding: '30px 40px', background: '#fff', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h1 style={{ fontSize: 20, fontWeight: 900, color: C.secondary, margin: 0 }}>Retiro</h1>
+        <div style={{ color: C.textSecondary, fontSize: 13 }}>Usuario: <b>{perfil?.nombre}</b></div>
+      </header>
 
-      <div style={s.card}>
-        <div style={s.field}>
-          <label style={s.label}>1. Buscar Producto *</label>
-          <BuscadorWeb onSelect={setProducto} />
-          {producto && (
-            <div style={s.info}>
-              📌 <strong>{producto.descripcion}</strong> | SAP: {producto.codigoSAP || 'N/A'} | 
-              Stock actual: <span style={{ color: producto.stock > 0 ? '#10b981' : '#ef4444', fontWeight: 800 }}>{producto.stock}</span>
+      <main style={{ padding: '40px', display: 'flex', justifyContent: 'center', width: '100%', boxSizing: 'border-box' }}>
+        
+        <div style={{ ...G.glass, background: '#fff', borderRadius: 28, padding: '40px', width: '100%', maxWidth: 650, boxShadow: G.cardShadowLg }}>
+          <h2 style={{ fontSize: 24, fontWeight: 900, color: C.secondary, margin: '0 0 5px' }}>Solicitar Retiro de Repuesto</h2>
+          <p style={{ fontSize: 13, color: C.textLight, marginBottom: 30 }}>Pañol recibirá una alerta para confirmar la entrega.</p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            
+            {/* 1. Producto */}
+            <div>
+              <label style={s.label}>Producto *</label>
+              <BuscadorWeb onSelect={manejarSeleccionProducto} />
+              {producto && (
+                <div style={s.infoProd}>
+                  <span>📦 {producto.descripcion}</span>
+                  <span style={{ fontWeight: 800, color: producto.stock > 0 ? C.success : C.error }}>Stock: {producto.stock}</span>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        <div style={s.row}>
-          <div style={{ flex: 1 }}>
-            <label style={s.label}>2. Cantidad a Retirar *</label>
-            <input style={s.input} type="number" value={cantidad} onChange={e => setCantidad(e.target.value)} min={1} max={producto?.stock} />
+            {/* 2. Cantidad y Unidades */}
+            <div>
+              <label style={s.label}>Cantidad *</label>
+              <div style={{ display: 'flex', gap: 15, alignItems: 'center' }}>
+                <input 
+                  style={{ ...s.input, flex: 1, fontSize: 16, fontWeight: 700 }} 
+                  type="number" value={cantidad} onChange={e => setCantidad(e.target.value)} placeholder="Ej: 2" 
+                />
+                <div style={{ display: 'flex', gap: 5 }}>
+                  {UNIDADES.map(u => (
+                    <button key={u} onClick={() => setUnidad(u)} style={{ ...s.uBtn, ...(unidad === u ? s.uBtnActive : {}) }}>{u}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Máquina Destino */}
+            <div>
+              <label style={s.label}>Máquina de Destino *</label>
+              <select style={s.input} value={maquina} onChange={e => setMaquina(e.target.value)}>
+                <option value="">Seleccionar máquina...</option>
+                {MAQUINAS.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+
+            {/* 4. Parte de la Máquina */}
+            <div>
+              <label style={s.label}>Parte de la Máquina (Zona de falla)</label>
+              <input style={s.input} value={parte} onChange={e => setParte(e.target.value)} placeholder="Ej: Motor, Transmisión, Banda..." />
+            </div>
+
+            {/* 5. Ubicación */}
+            <div>
+              <label style={s.label}>Ubicación en Bodega</label>
+              <input style={s.input} value={ubicacion} onChange={e => setUbicacion(e.target.value)} placeholder="Ej: Estante A3" />
+            </div>
+
+            {/* 6. Notas */}
+            <div>
+              <label style={s.label}>Notas / Observaciones</label>
+              <textarea style={{ ...s.input, height: 80, resize: 'none' }} value={notas} onChange={e => setNotas(e.target.value)} placeholder="Opcional..." />
+            </div>
+
+            {/* Listado de items ya agregados */}
+            {items.length > 0 && (
+              <div style={{ background: '#F8FAFC', borderRadius: 16, padding: '15px', border: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: C.textLight, marginBottom: 10 }}>LISTA DE MATERIALES ({items.length})</div>
+                {items.map(item => (
+                  <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, background: '#fff', padding: '8px 12px', borderRadius: 10 }}>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>{item.cantidad}{item.unidad} - {item.producto}</span>
+                    <button onClick={() => quitarItem(item.id)} style={{ border: 'none', background: 'none', color: C.error, cursor: 'pointer' }}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* 7. Agregar otro repuesto */}
+            <button onClick={agregarOtro} style={s.addBtn}>
+              <span style={{ fontSize: 18 }}>⊕</span> Agregar otro repuesto
+            </button>
+
+            {/* Botón Enviar */}
+            <button 
+              onClick={handleEnviar}
+              disabled={guardando}
+              style={{ ...s.submitBtn, opacity: guardando ? 0.7 : 1 }}
+            >
+              {guardando ? 'Enviando...' : 'Enviar Solicitud'}
+            </button>
+
           </div>
-          <div style={{ flex: 1 }}>
-            <label style={s.label}>3. Máquina Destino</label>
-            <select style={s.select} value={maquina} onChange={e => setMaquina(e.target.value)}>
-              <option value="">Seleccionar máquina...</option>
-              {MAQUINAS.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-          </div>
         </div>
-
-        <div style={s.field}>
-          <label style={s.label}>4. ¿Quién retira el material? *</label>
-          <select style={s.select} value={usuario} onChange={e => setUsuario(e.target.value)}>
-            <option value="">Seleccionar personal...</option>
-            {usuarios.map(u => <option key={u.id} value={u.nombre || u.email}>{u.nombre || u.email}</option>)}
-          </select>
-        </div>
-
-        <button style={{ ...s.btn, opacity: (guardando || !producto) ? 0.6 : 1 }} onClick={handleConfirmar} disabled={guardando || !producto}>
-          {guardando ? 'Procesando...' : 'Confirmar Retiro y Descontar Stock'}
-        </button>
-      </div>
+      </main>
     </div>
   );
 }
 
 const s = {
-  container: { padding: '30px', maxWidth: '800px', margin: '0 auto' },
-  header: { marginBottom: '25px', textAlign: 'center' },
-  titulo: { fontSize: '24px', fontWeight: 800, color: C.text, margin: 0 },
-  sub: { fontSize: '14px', color: C.textSecondary, marginTop: '5px' },
-  card: { background: '#fff', borderRadius: '16px', padding: '30px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '20px' },
-  field: { display: 'flex', flexDirection: 'column', gap: '8px' },
-  label: { fontSize: '13px', fontWeight: 700, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.5px' },
-  input: { padding: '12px', borderRadius: '8px', border: `1px solid ${C.border}`, fontSize: '16px', outline: 'none' },
-  select: { padding: '12px', borderRadius: '8px', border: `1px solid ${C.border}`, fontSize: '14px', outline: 'none', background: '#f8fafc' },
-  row: { display: 'flex', gap: '20px' },
-  info: { marginTop: '8px', padding: '10px', background: '#f1f5f9', borderRadius: '8px', fontSize: '13px', color: C.text },
-  btn: { background: C.primary, color: '#fff', border: 'none', borderRadius: '12px', padding: '16px', fontSize: '16px', fontWeight: 700, cursor: 'pointer', marginTop: '10px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' },
+  label: { display: 'block', fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 8 },
+  input: { width: '100%', padding: '14px 16px', borderRadius: 12, border: `1px solid ${C.border}`, fontSize: 14, outline: 'none', background: '#fff', boxSizing: 'border-box' },
+  infoProd: { marginTop: 8, padding: '10px 15px', background: '#F1F5F9', borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 },
+  uBtn: { padding: '12px 14px', borderRadius: 10, border: `1px solid ${C.border}`, background: '#F8FAFC', fontSize: 11, fontWeight: 800, color: C.textSecondary, cursor: 'pointer' },
+  uBtnActive: { background: C.primary, color: '#fff', borderColor: C.primary },
+  addBtn: { width: '100%', background: 'none', border: `2px dashed ${C.primary}30`, borderRadius: 14, padding: '15px', color: C.primary, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 10 },
+  submitBtn: { width: '100%', background: C.primary, color: '#fff', border: 'none', borderRadius: 14, padding: '18px', fontSize: 16, fontWeight: 800, cursor: 'pointer', marginTop: 5, boxShadow: '0 4px 12px rgba(244,130,31,0.2)' }
 };

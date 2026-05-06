@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { C } from '../theme';
+import { C, G } from '../theme';
 import * as XLSX from 'xlsx';
 import { importarLote } from '../services/inventarioService';
 import { importarHistorialLote } from '../services/historialService';
@@ -116,54 +116,83 @@ export default function ImportarExcel() {
   }
 
   return (
-    <div style={s.container}>
-      {/* Header igual que otras páginas */}
-      <div style={{ background: C.secondary, padding: '20px 24px', marginBottom: 0 }}>
-        <div style={s.titulo}>Importar desde Excel</div>
-        <div style={s.desc}>Sube <strong style={{ color: C.primary }}>Prysmian.xlsx</strong> para sincronizar inventario, retiros, ingresos y devoluciones.</div>
-      </div>
-
-      <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={s.uploadArea}>
-        <div style={s.uploadIcon}>📊</div>
-        <p style={s.uploadText}>Selecciona el archivo Excel</p>
-        <label style={s.btnPrimary}>
-          {procesando ? 'Procesando...' : 'Seleccionar archivo .xlsx'}
-          <input type="file" accept=".xlsx,.xls" onChange={handleArchivo} disabled={procesando} style={{ display: 'none' }} />
-        </label>
-      </div>
-
-      {progreso && (
-        <div style={s.progreso}>
-          <p style={s.progresoTexto}>{progreso.texto}</p>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100vh', background: C.background }}>
+      {/* ── Header Premium ── */}
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '40px 40px 30px', background: '#fff', borderBottom: `1px solid ${C.border}`, width: '100%', boxSizing: 'border-box' }}>
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: C.secondary, margin: 0, letterSpacing: -0.5 }}>Importación de Datos Maestro</h1>
+          <p style={{ fontSize: 14, color: C.textSecondary, marginTop: 4 }}>Sincronización masiva de inventario y movimientos vía Excel</p>
         </div>
-      )}
-
-      {log.length > 0 && (
-        <div style={s.logBox}>
-          {log.map((l, i) => (
-            <div key={i} style={{ ...s.logLine, color: l.tipo === 'error' ? '#ef4444' : l.tipo === 'success' ? '#10b981' : '#d1d5db' }}>
-              <span style={s.logTime}>{l.t}</span> {l.msg}
-            </div>
-          ))}
+        <div style={{ background: 'rgba(244,130,31,0.1)', color: C.primary, padding: '10px 20px', borderRadius: 14, fontSize: 13, fontWeight: 800 }}>
+          FORMATO REQUERIDO: .XLSX
         </div>
-      )}
+      </header>
 
-      <div style={s.infoBox}>
-        <h3 style={s.infoTitulo}>Estructura esperada del Excel</h3>
-        {[
-          ['Inventario', 'UBICACIÓN, STOCK, DESCRIPCION, PUNTO DE REORDEN, SOLICITADO'],
-          ['Retiros', 'FECHA, USUARIO, PRODUCTO, CANTIDAD RETIRADA, MAQUINA, ESTADO'],
-          ['Ingresos', 'FECHA, USUARIO, PRODUCTO, CANTIDAD INGRESADA'],
-          ['Devolucion', 'FECHA, USUARIO, PRODUCTO, MAQUINA, CANTIDAD DEVUELTA, ESTADO'],
-        ].map(([hoja, cols]) => (
-          <div key={hoja} style={s.infoFila}>
-            <span style={s.infoBadge}>{hoja}</span>
-            <span style={s.infoCols}>{cols}</span>
+      <main style={{ padding: '40px', width: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 30 }}>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 30 }}>
+          
+          {/* Zona de Carga */}
+          <div style={{ ...G.glass, background: '#fff', padding: '40px', borderRadius: 28, textAlign: 'center', boxShadow: G.cardShadowLg, border: `2px dashed ${C.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: 60, marginBottom: 20 }}>📊</div>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: C.secondary, marginBottom: 10 }}>Subir Archivo Prysmian.xlsx</h2>
+            <p style={{ fontSize: 14, color: C.textSecondary, marginBottom: 30, maxWidth: 300 }}>Asegúrate de que el archivo contenga las pestañas correspondientes para una carga exitosa.</p>
+            
+            <label style={{ background: C.primary, color: '#fff', padding: '16px 32px', borderRadius: 16, cursor: procesando ? 'default' : 'pointer', fontWeight: 800, fontSize: 15, transition: 'all 0.2s', boxShadow: '0 8px 16px rgba(244,130,31,0.25)', opacity: procesando ? 0.6 : 1 }}>
+              {procesando ? 'PROCESANDO DATOS...' : 'SELECCIONAR ARCHIVO EXCEL'}
+              <input type="file" accept=".xlsx,.xls" onChange={handleArchivo} disabled={procesando} style={{ display: 'none' }} />
+            </label>
+            
+            {progreso && (
+              <div style={{ marginTop: 25, width: '100%', maxWidth: 300 }}>
+                <div style={{ height: 8, background: C.surfaceAlt, borderRadius: 4, overflow: 'hidden', marginBottom: 10 }}>
+                   <div style={{ height: '100%', width: '100%', background: C.primary, animation: 'pulse 2s infinite' }} />
+                </div>
+                <p style={{ fontSize: 12, fontWeight: 800, color: C.primary }}>{progreso.texto}</p>
+              </div>
+            )}
           </div>
-        ))}
-      </div>
-      </div>{/* fin padding wrapper */}
+
+          {/* Consola de Logs */}
+          <div style={{ ...G.glass, background: C.secondary, padding: '30px', borderRadius: 28, boxShadow: G.cardShadowLg, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ color: '#fff', fontSize: 12, fontWeight: 800, marginBottom: 15, letterSpacing: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 5, background: procesando ? '#fbbf24' : '#10b981' }} />
+              CONSOLA DE IMPORTACIÓN
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', maxHeight: 350, fontFamily: 'monospace', fontSize: 13, color: '#a5f3fc' }}>
+              {log.length === 0 ? (
+                <div style={{ color: 'rgba(255,255,255,0.2)', textAlign: 'center', marginTop: 100 }}>Esperando archivo...</div>
+              ) : (
+                log.map((l, i) => (
+                  <div key={i} style={{ marginBottom: 6, display: 'flex', gap: 10, color: l.tipo === 'error' ? '#fca5a5' : l.tipo === 'success' ? '#86efac' : '#a5f3fc' }}>
+                    <span style={{ opacity: 0.4 }}>[{l.t}]</span>
+                    <span>{l.msg}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Guía de Estructura */}
+        <div style={{ ...G.glass, background: '#fff', padding: '30px', borderRadius: 28, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+           <h3 style={{ fontSize: 16, fontWeight: 800, color: C.secondary, marginBottom: 20 }}>Estructura de Datos Requerida</h3>
+           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20 }}>
+             {[
+               { h: 'Inventario', c: 'DESCRIPCION, UBICACIÓN, STOCK, PUNTO DE REORDEN' },
+               { h: 'Retiros', c: 'FECHA, USUARIO, PRODUCTO, CANTIDAD RETIRADA, MAQUINA' },
+               { h: 'Ingresos', c: 'FECHA, USUARIO, PRODUCTO, CANTIDAD INGRESADA' },
+               { h: 'Devolucion', c: 'FECHA, USUARIO, PRODUCTO, MAQUINA, CANTIDAD DEVUELTA' },
+             ].map(info => (
+               <div key={info.h} style={{ padding: '20px', borderRadius: 20, background: C.surfaceAlt, border: `1px solid ${C.border}` }}>
+                 <div style={{ fontWeight: 900, fontSize: 13, color: C.primary, marginBottom: 8 }}>{info.h.toUpperCase()}</div>
+                 <div style={{ fontSize: 11, color: C.textSecondary, fontWeight: 600, lineHeight: 1.5 }}>{info.c}</div>
+               </div>
+             ))}
+           </div>
+        </div>
+
+      </main>
     </div>
   );
 }

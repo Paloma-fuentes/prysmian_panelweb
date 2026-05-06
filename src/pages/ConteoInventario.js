@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { C, card } from '../theme';
+import { C, G } from '../theme';
 import { escucharMateriales, editarMaterial } from '../services/inventarioService';
+import { escucharConfig } from '../services/configService';
 
 export default function ConteoInventario() {
   const [materiales, setMateriales] = useState([]);
@@ -8,6 +9,12 @@ export default function ConteoInventario() {
   const [loading, setLoading]       = useState(true);
   const [busqueda, setBusqueda]     = useState('');
   const [guardando, setGuardando]   = useState(false);
+  const [config, setConfig]         = useState({ conteoActivo: false });
+
+  useEffect(() => {
+    const unsubConfig = escucharConfig(setConfig);
+    return () => unsubConfig();
+  }, []);
 
   useEffect(() => {
     const unsub = escucharMateriales(data => {
@@ -52,67 +59,96 @@ export default function ConteoInventario() {
     }
   }
 
-  return (
-    <div style={s.container}>
-      <div style={s.header}>
-        <h1 style={s.titulo}>Auditoría de Inventario (Conteo)</h1>
-        <p style={s.sub}>Compara el stock físico con el sistema y ajusta diferencias</p>
+  if (!config.conteoActivo) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#F8FAFC', padding: 40, textAlign: 'center' }}>
+        <div style={{ fontSize: 80, marginBottom: 20 }}>🔒</div>
+        <h2 style={{ fontSize: 24, fontWeight: 900, color: C.secondary }}>Auditoría no activa</h2>
+        <p style={{ fontSize: 16, color: C.textSecondary, maxWidth: 500, lineHeight: 1.5 }}>
+          El censo de inventario está actualmente desactivado por la administración. 
+          Vuelve a intentarlo cuando se inicie un nuevo proceso de conteo físico.
+        </p>
       </div>
+    );
+  }
 
-      <div style={s.toolbar}>
-        <input 
-          style={s.search} 
-          placeholder="Buscar repuesto por nombre o SAP..." 
-          value={busqueda} 
-          onChange={e => setBusqueda(e.target.value)} 
-        />
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100vh', background: C.background }}>
+      {/* ── Header Premium ── */}
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '40px 40px 30px', background: '#fff', borderBottom: `1px solid ${C.border}`, width: '100%', boxSizing: 'border-box' }}>
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: C.secondary, margin: 0, letterSpacing: -0.5 }}>Auditoría de Inventario</h1>
+          <p style={{ fontSize: 14, color: C.textSecondary, marginTop: 4 }}>Censo físico de materiales y ajuste de stock en sistema</p>
+        </div>
         <button 
-          style={{ ...s.btn, background: Object.keys(conteo).length > 0 ? C.primary : '#94a3b8' }} 
+          style={{ padding: '14px 28px', borderRadius: 14, color: '#fff', border: 'none', fontWeight: 800, cursor: Object.keys(conteo).length > 0 ? 'pointer' : 'default', background: Object.keys(conteo).length > 0 ? C.primary : '#cbd5e1', boxShadow: Object.keys(conteo).length > 0 ? '0 4px 12px rgba(244,130,31,0.3)' : 'none', transition: 'all 0.2s' }} 
           disabled={guardando || Object.keys(conteo).length === 0} 
           onClick={finalizarConteo}
         >
-          {guardando ? 'Guardando...' : `Guardar Conteo (${Object.keys(conteo).length})`}
+          {guardando ? 'Sincronizando...' : `Guardar Conteo (${Object.keys(conteo).length})`}
         </button>
+      </header>
+
+      {/* ── Barra de Búsqueda ── */}
+      <div style={{ padding: '24px 40px', width: '100%', boxSizing: 'border-box' }}>
+        <div style={{ background: '#fff', border: `1px solid ${C.border}`, borderRadius: 16, padding: '0 20px', display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+          <span style={{ fontSize: 20 }}>🔍</span>
+          <input 
+            style={{ flex: 1, border: 'none', padding: '16px 0', fontSize: 15, fontWeight: 500, outline: 'none', color: C.text }} 
+            placeholder="Buscar por descripción del material o código SAP..." 
+            value={busqueda} 
+            onChange={e => setBusqueda(e.target.value)} 
+          />
+        </div>
       </div>
 
-      {loading ? <div style={{ textAlign: 'center', padding: 40 }}>Cargando materiales...</div> : (
-        <div style={s.grid}>
-          {filtrados.map(m => {
-            const contado = conteo[m.id];
-            const diferencia = contado !== undefined ? Number(contado) - m.stock : 0;
-            return (
-              <div key={m.id} style={{ ...card, borderLeft: `5px solid ${contado !== undefined ? (diferencia === 0 ? '#10b981' : '#ef4444') : '#e2e8f0'}` }}>
-                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>{m.descripcion}</div>
-                <div style={{ fontSize: 11, color: C.textSecondary, marginBottom: 12 }}>SAP: {m.codigoSAP || 'N/A'} | Ubic: {m.ubicacion || '—'}</div>
-                
-                <div style={s.conteoRow}>
-                  <div style={s.stockInfo}>
-                    <span style={s.label}>Stock Sistema</span>
-                    <span style={s.valor}>{m.stock}</span>
-                  </div>
+      <main style={{ padding: '0 40px 40px', width: '100%', boxSizing: 'border-box' }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 100, color: C.textSecondary, fontWeight: 600 }}>Cargando catálogo...</div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 20 }}>
+            {filtrados.map(m => {
+              const contado = conteo[m.id];
+              const diferencia = contado !== undefined ? Number(contado) - m.stock : 0;
+              return (
+                <div key={m.id} style={{ ...G.glass, background: '#fff', borderRadius: 24, padding: '24px', borderLeft: `6px solid ${contado !== undefined ? (diferencia === 0 ? C.success : C.error) : C.border}`, boxShadow: '0 4px 12px rgba(0,0,0,0.03)', position: 'relative' }}>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: C.secondary, marginBottom: 5, lineHeight: 1.3 }}>{m.descripcion}</div>
+                  <div style={{ fontSize: 11, color: C.textLight, fontWeight: 700, marginBottom: 20 }}>SAP: {m.codigoSAP || 'N/A'} • UBIC: {m.ubicacion || '—'}</div>
                   
-                  <div style={s.inputBox}>
-                    <span style={s.label}>Stock Real</span>
-                    <input 
-                      style={s.input} 
-                      type="number" 
-                      value={contado ?? ''} 
-                      placeholder="0"
-                      onChange={e => handleInput(m.id, e.target.value)}
-                    />
+                  <div style={{ background: C.surfaceAlt, padding: '15px', borderRadius: 16, display: 'flex', gap: 15, alignItems: 'center' }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: C.textLight, letterSpacing: 0.5 }}>SISTEMA</div>
+                      <div style={{ fontSize: 20, fontWeight: 900, color: C.secondary }}>{m.stock}</div>
+                    </div>
+                    
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: C.primary, letterSpacing: 0.5 }}>FÍSICO</div>
+                      <input 
+                        style={{ width: '100%', background: '#fff', border: `2px solid ${C.primary}`, borderRadius: 8, padding: '8px 12px', fontSize: 18, fontWeight: 900, color: C.primary, outline: 'none', boxSizing: 'border-box' }} 
+                        type="number" 
+                        value={contado ?? ''} 
+                        placeholder="—"
+                        onChange={e => handleInput(m.id, e.target.value)}
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {contado !== undefined && diferencia !== 0 && (
-                  <div style={{ ...s.diff, color: diferencia > 0 ? '#10b981' : '#ef4444' }}>
-                    Diferencia: {diferencia > 0 ? '+' : ''}{diferencia} unidades
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+                  {contado !== undefined && diferencia !== 0 && (
+                    <div style={{ marginTop: 12, fontSize: 12, fontWeight: 800, textAlign: 'right', color: diferencia > 0 ? C.success : C.error }}>
+                      {diferencia > 0 ? 'Exceso' : 'Faltante'}: {diferencia > 0 ? '+' : ''}{diferencia} unidades
+                    </div>
+                  )}
+                  {contado !== undefined && diferencia === 0 && (
+                    <div style={{ marginTop: 12, fontSize: 12, fontWeight: 800, textAlign: 'right', color: C.success }}>
+                      ✓ Stock coincide perfectamente
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </main>
     </div>
   );
 }

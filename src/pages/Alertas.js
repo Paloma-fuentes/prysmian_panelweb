@@ -1,19 +1,12 @@
 import { useEffect, useState } from 'react';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { C, card } from '../theme';
+import { C, G } from '../theme';
 
-const TIPOS = [
-  { key: 'todos',      label: 'Todos' },
-  { key: 'retiro',     label: 'Retiros' },
-  { key: 'devolucion', label: 'Devoluciones' },
-  { key: 'revertido',  label: 'Revertidos' },
-];
-
-const TIPO_CFG = {
-  retiro:     { color: C.error,   bg: C.errorLight,   icono: '⬆️', label: 'RETIRO'     },
-  devolucion: { color: C.success, bg: C.successLight,  icono: '⬇️', label: 'DEVOLUCIÓN' },
-  revertido:  { color: '#f59e0b', bg: '#fef3c7',       icono: '↩️', label: 'REVERTIDO'  },
+const TIPOS_CFG = {
+  retiro:     { color: C.error,   bg: '#FEE2E2', icono: '📤', label: 'RETIRO' },
+  devolucion: { color: C.success, bg: '#DCFCE7', icono: '↩️', label: 'DEVOLUCIÓN' },
+  revertido:  { color: '#8B5CF6', bg: '#F5F3FF', icono: '🔄', label: 'REVERSIÓN' },
 };
 
 export default function Alertas() {
@@ -25,7 +18,7 @@ export default function Alertas() {
     async function cargar() {
       const snap = await getDocs(query(collection(db, 'historial'), orderBy('fecha', 'desc'), limit(300)));
       const todos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setItems(todos.filter(h => ['retiro', 'devolucion', 'revertido'].includes(h.tipo)));
+      setItems(todos.filter(h => ['retiro', 'devolucion', 'revertido', 'retornado'].includes(h.tipo)));
       setLoading(false);
     }
     cargar();
@@ -33,92 +26,122 @@ export default function Alertas() {
 
   const filtrados = filtro === 'todos' ? items : items.filter(i => i.tipo === filtro);
 
-  if (loading) return <LoadingView />;
-
   return (
-    <div style={s.page}>
-      <div style={s.topBar}>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100vh', background: C.background }}>
+      {/* ── Header Premium ── */}
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '40px 40px 30px', background: '#fff', borderBottom: `1px solid ${C.border}`, width: '100%', boxSizing: 'border-box' }}>
         <div>
-          <div style={s.titulo}>Alertas de Movimientos</div>
-          <div style={s.subtitulo}>Retiros, devoluciones y revertidos del sistema</div>
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: C.secondary, margin: 0, letterSpacing: -0.5 }}>Auditoría de Movimientos</h1>
+          <p style={{ fontSize: 14, color: C.textSecondary, marginTop: 4 }}>Seguimiento en tiempo real de entradas y salidas del pañol</p>
         </div>
-      </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 24, fontWeight: 900, color: C.primary }}>{items.length}</div>
+          <div style={{ fontSize: 10, fontWeight: 800, color: C.textLight, letterSpacing: 1 }}>MOVIMIENTOS HOY</div>
+        </div>
+      </header>
 
-      <div style={{ padding: '16px 28px' }}>
-        {/* Filtros */}
-        <div style={s.filtroRow}>
-          {TIPOS.map(t => (
-            <button
-              key={t.key}
-              style={{ ...s.filtroBtn, ...(filtro === t.key ? s.filtroBtnActivo : {}) }}
-              onClick={() => setFiltro(t.key)}
+      {/* ── Barra de Filtros Glass ── */}
+      <div style={{ padding: '24px 40px', width: '100%', boxSizing: 'border-box' }}>
+        <div style={{ display: 'flex', gap: 10, background: '#fff', padding: '6px', borderRadius: 16, border: `1px solid ${C.border}`, display: 'inline-flex', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+          {[
+            ['todos', '🔔 Todos'],
+            ['retiro', '📤 Retiros'],
+            ['devolucion', '↩️ Devoluciones'],
+            ['revertido', '🔄 Reversiones'],
+          ].map(([val, lbl]) => (
+            <button 
+              key={val} 
+              style={{ padding: '10px 20px', borderRadius: 12, border: 'none', background: filtro === val ? C.secondary : 'none', color: filtro === val ? '#fff' : C.textSecondary, cursor: 'pointer', fontSize: 13, fontWeight: 700, transition: 'all 0.2s' }} 
+              onClick={() => setFiltro(val)}
             >
-              {t.label}
-              <span style={{ ...s.filtroCnt, ...(filtro === t.key ? { background: '#fff', color: C.primary } : {}) }}>
-                {t.key === 'todos' ? items.length : items.filter(i => i.tipo === t.key).length}
-              </span>
+              {lbl}
             </button>
           ))}
         </div>
+      </div>
 
-        {/* Lista */}
-        {filtrados.length === 0 ? (
-          <div style={s.empty}>
-            <div style={{ fontSize: 40 }}>🔔</div>
-            <div>Sin movimientos registrados</div>
-          </div>
+      {/* ── Feed de Actividad Expansivo ── */}
+      <main style={{ padding: '0 40px 40px', width: '100%', boxSizing: 'border-box' }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 100, color: C.textSecondary, fontWeight: 600 }}>Analizando historial...</div>
+        ) : filtrados.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 100, color: C.textLight, background: '#fff', borderRadius: 24, border: `2px dashed ${C.border}` }}>No hay movimientos registrados en este periodo</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
             {filtrados.map((item, i) => {
-              const cfg = TIPO_CFG[item.tipo] || {};
-              const fecha = item.fecha?.toDate ? item.fecha.toDate() : null;
+              const cfg = TIPOS_CFG[item.tipo] || TIPOS_CFG.revertido;
+              const fecha = item.fecha?.toDate?.() || new Date();
               return (
-                <div key={item.id || i} style={{ ...card, marginBottom: 0, display: 'flex', gap: 14, alignItems: 'flex-start', borderLeft: `4px solid ${cfg.color}` }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 20, background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
-                    {cfg.icono}
+                <div key={item.id || i} style={{ ...G.glass, background: '#fff', display: 'flex', gap: 25, padding: '24px', alignItems: 'center', borderRadius: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                  <div style={{ width: 60, height: 60, borderRadius: 18, background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, flexShrink: 0 }}>{cfg.icono}</div>
+                  
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <span style={{ fontSize: 10, fontWeight: 900, padding: '4px 12px', borderRadius: 20, background: cfg.bg, color: cfg.color, letterSpacing: 1 }}>{cfg.label}</span>
+                      <span style={{ fontSize: 13, color: C.textLight, fontWeight: 600 }}>{fecha.toLocaleString('es-CL')}</span>
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: 15, alignItems: 'center', marginBottom: 15 }}>
+                      <span style={{ fontSize: 24, fontWeight: 900, color: C.secondary }}>{item.cantidad}x</span>
+                      <span style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{item.producto}</span>
+                    </div>
+ 
+                    <div style={{ display: 'flex', gap: 15 }}>
+                      <div style={{ fontSize: 12, color: C.textSecondary, background: C.surfaceAlt, padding: '6px 14px', borderRadius: 10, fontWeight: 700 }}>👤 {item.usuario || 'Operario'}</div>
+                      {item.maquina && (
+                        <div style={{ fontSize: 12, color: C.textSecondary, background: C.surfaceAlt, padding: '6px 14px', borderRadius: 10, fontWeight: 700 }}>⚙️ {item.maquina}</div>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
-                      {fecha && <span style={{ fontSize: 11, color: C.textLight }}>{fecha.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}
-                    </div>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: C.text }}>{item.cantidad}x {item.producto}</div>
-                    <div style={{ fontSize: 12, color: C.textSecondary, marginTop: 2 }}>
-                      {item.maquina && item.maquina !== 'N/A' ? `⚙️ ${item.maquina}` : ''} {item.parteMaquina ? `· ${item.parteMaquina}` : ''}
-                    </div>
-                    <div style={{ fontSize: 12, color: C.textSecondary, marginTop: 4, background: C.background, padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
-                      👤 {item.usuario || '—'}
-                    </div>
+ 
+                  <div style={{ textAlign: 'right', borderLeft: `1px solid ${C.border}`, paddingLeft: 30, flexShrink: 0, minWidth: 120 }}>
+                    <div style={{ fontSize: 11, color: C.textLight, fontWeight: 800, letterSpacing: 1, marginBottom: 5 }}>TRACKING ID</div>
+                    <div style={{ fontSize: 12, fontFamily: 'monospace', color: C.textSecondary, fontWeight: 700 }}>{item.id.slice(-10).toUpperCase()}</div>
                   </div>
                 </div>
               );
             })}
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-function LoadingView() {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
-      <div style={{ textAlign: 'center', color: C.textLight }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
-        <div>Cargando alertas...</div>
-      </div>
+      </main>
     </div>
   );
 }
 
 const s = {
-  page:         { color: C.text },
-  topBar:       { padding: '20px 28px 16px', background: C.secondary, color: '#fff' },
-  titulo:       { fontSize: 22, fontWeight: 800, color: '#fff' },
-  subtitulo:    { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 4 },
-  filtroRow:    { display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
-  filtroBtn:    { display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 20, border: `1px solid ${C.border}`, background: C.surface, color: C.textSecondary, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
-  filtroBtnActivo: { background: C.primary, borderColor: C.primary, color: '#fff' },
-  filtroCnt:    { background: C.border, color: C.textSecondary, borderRadius: 10, padding: '1px 7px', fontSize: 11, fontWeight: 700 },
-  empty:        { textAlign: 'center', padding: 60, color: C.textLight, fontSize: 15, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 },
+  container:       { minHeight: '100vh', background: C.background },
+  header:          { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '40px 40px 30px', background: '#fff', borderBottom: `1px solid ${C.border}` },
+  titulo:          { fontSize: 28, fontWeight: 900, color: C.secondary, margin: 0, letterSpacing: -0.5 },
+  tituloSub:       { fontSize: 14, color: C.textSecondary, marginTop: 4 },
+  
+  stats:           { display: 'flex', gap: 20 },
+  statItem:        { textAlign: 'right' },
+  statVal:         { display: 'block', fontSize: 24, fontWeight: 900, color: C.primary },
+  statLbl:         { fontSize: 10, fontWeight: 800, color: C.textLight, letterSpacing: 1 },
+
+  toolbar:         { padding: '24px 40px' },
+  tabs:            { display: 'flex', gap: 10, background: '#fff', padding: '6px', borderRadius: 16, border: `1px solid ${C.border}`, display: 'inline-flex' },
+  tab:             { padding: '10px 20px', borderRadius: 12, border: 'none', background: 'none', color: C.textSecondary, cursor: 'pointer', fontSize: 13, fontWeight: 700, transition: 'all 0.2s' },
+  tabActivo:       { background: C.secondary, color: '#fff', boxShadow: '0 4px 10px rgba(15,23,42,0.2)' },
+  
+  feed:            { display: 'flex', flexDirection: 'column', gap: 16 },
+  card:            { display: 'flex', gap: 20, padding: '20px', alignItems: 'center', transition: 'transform 0.2s', cursor: 'default' },
+  iconBox:         { width: 56, height: 56, borderRadius: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 },
+  
+  cardTop:         { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  badge:           { fontSize: 10, fontWeight: 900, padding: '4px 10px', borderRadius: 20 },
+  fecha:           { fontSize: 12, color: C.textLight, fontWeight: 500 },
+  
+  cardMid:         { display: 'flex', gap: 12, alignItems: 'center', marginBottom: 12 },
+  cantidad:        { fontSize: 20, fontWeight: 900, color: C.secondary },
+  producto:        { fontSize: 16, fontWeight: 700, color: C.text },
+  
+  cardBot:         { display: 'flex', gap: 16 },
+  userTag:         { fontSize: 12, color: C.textSecondary, background: C.surfaceAlt, padding: '4px 10px', borderRadius: 8, fontWeight: 600 },
+  maquinaTag:      { fontSize: 12, color: C.textSecondary, background: C.surfaceAlt, padding: '4px 10px', borderRadius: 8, fontWeight: 600 },
+  
+  cardRight:       { textAlign: 'right', borderLeft: `1px solid ${C.border}`, paddingLeft: 20, flexShrink: 0 },
+  
+  loading:         { textAlign: 'center', padding: 100, color: C.textSecondary, fontWeight: 600 },
+  empty:           { textAlign: 'center', padding: 100, color: C.textLight, fontSize: 16 },
 };
