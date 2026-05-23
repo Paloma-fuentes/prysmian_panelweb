@@ -2,12 +2,17 @@ import { useEffect, useState } from 'react';
 import { C, G } from '../theme';
 import { escucharMateriales, buscarMateriales, getMateriales } from '../services/inventarioService';
 
-export default function Inventario({ filtroInicial = 'todos' }) {
+export default function Inventario({ filtroInicial = 'todos', perfil }) {
   const [materiales, setMateriales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
   const [filtro, setFiltro] = useState(filtroInicial);
   const [pag, setPag] = useState(0);
+  const [editando, setEditando] = useState(null);
+  const [cargandoUpdate, setCargandoUpdate] = useState(false);
+
+  const rolActual = (perfil?.rol || '').toLowerCase();
+  const esAdmin = rolActual === 'admin' || rolActual === 'panol' || rolActual === 'administrador';
   const POR_PAG = 50;
 
   useEffect(() => { setFiltro(filtroInicial); }, [filtroInicial]);
@@ -43,6 +48,30 @@ export default function Inventario({ filtroInicial = 'todos' }) {
     setMateriales(data);
     setLoading(false);
     setPag(0);
+  }
+
+  async function handleGuardar() {
+    if (!editando) return;
+    setCargandoUpdate(true);
+    try {
+      const { id, ...data } = editando;
+      const finalData = {
+        ...data,
+        stock: Number(data.stock) || 0,
+        puntoReorden: Number(data.puntoReorden) || 0,
+        precio: Number(data.precio) || 0,
+        bajoStock: (Number(data.stock) || 0) <= (Number(data.puntoReorden) || 0)
+      };
+      await editarMaterial(id, finalData);
+      setEditando(null);
+      // No hace falta cargar() si usamos el snapshot en tiempo real, 
+      // pero si es manual, llamamos a cargar()
+      if (!(filtro === 'todos' && !busqueda)) cargar();
+    } catch (e) {
+      alert("Error al actualizar: " + e.message);
+    } finally {
+      setCargandoUpdate(false);
+    }
   }
 
   const paginados = materiales.slice(pag * POR_PAG, (pag + 1) * POR_PAG);
@@ -97,7 +126,7 @@ export default function Inventario({ filtroInicial = 'todos' }) {
             <table style={s.table}>
               <thead>
                 <tr>
-                  {['DESCRIPCIÓN', 'UBICACIÓN', 'STOCK', 'PUNTO REORDEN', 'CÓDIGO SAP', 'ESTADO'].map(h => (
+                  {['DESCRIPCIÓN', 'CATEGORÍA', 'UBICACIÓN', 'STOCK', 'PUNTO REORDEN', 'SAP', 'ESTADO'].map(h => (
                     <th key={h} style={s.th}>{h}</th>
                   ))}
                 </tr>
@@ -105,24 +134,22 @@ export default function Inventario({ filtroInicial = 'todos' }) {
               <tbody>
                 {paginados.map((m, i) => (
                   <tr key={m.id} style={s.tr}>
-                    <td style={{ ...s.td, fontWeight: 600, color: C.secondary, width: '35%' }}>{m.descripcion}</td>
-                    <td style={{ ...s.td, color: C.textSecondary }}>{m.ubicacion || '—'}</td>
+                    <td style={{ ...s.td, fontWeight: 600, color: C.secondary, width: '25%' }}>{m.descripcion}</td>
+                    <td style={{ ...s.td, fontSize: 11, fontWeight: 700, color: C.primary }}>{m.categoria || 'SIN CAT.'}</td>
+                    <td style={{ ...s.td, color: C.textSecondary, fontSize: 12 }}>{m.ubicacion || '—'}</td>
                     <td style={s.td}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontWeight: 800, fontSize: 16, color: (m.stock||0) === 0 ? C.error : (m.stock||0) <= (m.puntoReorden||0) ? C.warning : C.success }}>
+                        <span style={{ fontWeight: 800, fontSize: 15, color: (m.stock||0) === 0 ? C.error : (m.stock||0) <= (m.puntoReorden||0) ? C.warning : C.success }}>
                           {m.stock || 0}
                         </span>
-                        <div style={{ width: 60, height: 6, background: '#F1F5F9', borderRadius: 3, overflow: 'hidden' }}>
-                           <div style={{ width: `${Math.min(100, ((m.stock||0) / ((m.puntoReorden||5) * 2)) * 100)}%`, height: '100%', background: (m.stock||0) === 0 ? C.error : (m.stock||0) <= (m.puntoReorden||0) ? C.warning : C.success }} />
-                        </div>
                       </div>
                     </td>
                     <td style={s.td}>{m.puntoReorden || 0}</td>
-                    <td style={{ ...s.td, fontFamily: 'monospace', color: C.textSecondary, letterSpacing: 0.5 }}>{m.codigoSAP || 'N/A'}</td>
+                    <td style={{ ...s.td, fontFamily: 'monospace', fontSize: 11 }}>{m.codigoSAP || 'N/A'}</td>
                     <td style={s.td}>
-                      {(m.stock||0) === 0 ? <span style={s.badgeError}>❌ AGOTADO</span>
-                        : (m.stock||0) <= (m.puntoReorden||0) ? <span style={s.badgeWarning}>⚠️ BAJO STOCK</span>
-                        : <span style={s.badgeSuccess}>✅ DISPONIBLE</span>}
+                      {(m.stock||0) === 0 ? <span style={s.badgeError}>AGOTADO</span>
+                        : (m.stock||0) <= (m.puntoReorden||0) ? <span style={s.badgeWarning}>BAJO</span>
+                        : <span style={s.badgeSuccess}>DISP.</span>}
                     </td>
                   </tr>
                 ))}
@@ -139,6 +166,58 @@ export default function Inventario({ filtroInicial = 'todos' }) {
           </div>
         )}
       </main>
+
+      {/* ── Modal de Edición ── */}
+      {editando && (
+        <div style={s.overlay}>
+          <div style={s.modal}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 25 }}>
+              <h3 style={{ margin: 0, fontWeight: 900, color: C.secondary }}>Editar Material</h3>
+              <button onClick={() => setEditando(null)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15 }}>
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={s.label}>DESCRIPCIÓN</label>
+                <input style={s.input} value={editando.descripcion} onChange={e => setEditando({...editando, descripcion: e.target.value})} />
+              </div>
+              <div>
+                <label style={s.label}>CATEGORÍA</label>
+                <select style={s.input} value={editando.categoria || ''} onChange={e => setEditando({...editando, categoria: e.target.value})}>
+                  <option value="">Seleccionar...</option>
+                  <option value="Mecánica">Mecánica</option>
+                  <option value="Eléctrica">Eléctrica</option>
+                  <option value="Electrónica">Electrónica</option>
+                  <option value="Neumática">Neumática</option>
+                  <option value="Seguridad">Seguridad</option>
+                  <option value="Oficina">Oficina</option>
+                  <option value="Otros">Otros</option>
+                </select>
+              </div>
+              <div>
+                <label style={s.label}>UBICACIÓN</label>
+                <input style={s.input} value={editando.ubicacion || ''} onChange={e => setEditando({...editando, ubicacion: e.target.value})} />
+              </div>
+              <div>
+                <label style={s.label}>PRECIO ($)</label>
+                <input type="number" style={s.input} value={editando.precio || ''} onChange={e => setEditando({...editando, precio: e.target.value})} />
+              </div>
+              <div>
+                <label style={s.label}>PUNTO REORDEN</label>
+                <input type="number" style={s.input} value={editando.puntoReorden || ''} onChange={e => setEditando({...editando, puntoReorden: e.target.value})} />
+              </div>
+            </div>
+
+            <button 
+              onClick={handleGuardar} 
+              disabled={cargandoUpdate}
+              style={{ ...s.saveBtn, opacity: cargandoUpdate ? 0.7 : 1 }}
+            >
+              {cargandoUpdate ? 'Guardando...' : 'Guardar Cambios'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -172,4 +251,11 @@ const s = {
   pagBtn:          { background: '#fff', color: C.text, border: `1px solid ${C.border}`, borderRadius: 12, padding: '10px 24px', cursor: 'pointer', fontSize: 14, fontWeight: 700 },
   pagInfo:         { color: C.textSecondary, fontSize: 14 },
   loading:         { textAlign: 'center', padding: 100, color: C.textSecondary, fontWeight: 700, fontSize: 18 },
+
+  overlay: { position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+  modal: { background: '#fff', padding: 40, borderRadius: 32, width: 500, boxShadow: '0 20px 50px rgba(0,0,0,0.2)' },
+  label: { display: 'block', fontSize: 10, fontWeight: 800, color: C.textLight, marginBottom: 8, letterSpacing: 0.5 },
+  input: { width: '100%', padding: '14px', borderRadius: 14, border: `1px solid ${C.border}`, fontSize: 14, background: '#F8FAFC', color: C.secondary, fontWeight: 600, outline: 'none', boxSizing: 'border-box' },
+  saveBtn: { width: '100%', marginTop: 30, padding: 18, borderRadius: 16, border: 'none', background: C.secondary, color: '#fff', fontSize: 15, fontWeight: 800, cursor: 'pointer', boxShadow: '0 4px 12px rgba(15,23,42,0.2)' },
+  editBtn: { background: 'none', border: 'none', fontSize: 16, cursor: 'pointer', opacity: 0.8, padding: 5 },
 };

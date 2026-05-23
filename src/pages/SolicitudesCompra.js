@@ -28,8 +28,12 @@ export default function SolicitudesCompra({ perfil }) {
   useEffect(() => {
     setLoading(true);
     const unsub = escucharSolicitudesCompra(data => {
-      // PRIVACIDAD: Si no es admin, filtrar solo las propias
-      const filtradas = esAdmin ? data : data.filter(s => s.usuario === perfil?.nombre);
+      const myUid = perfil?.uid || perfil?.id;
+      // PRIVACIDAD: Si no es admin, filtrar solo las propias por UID o Nombre
+      const filtradas = esAdmin 
+        ? data 
+        : data.filter(s => (s.usuarioUid === myUid) || (s.solicitanteUid === myUid) || (s.usuario === perfil?.nombre));
+      
       setSolicitudes(filtradas);
       setLoading(false);
     });
@@ -39,12 +43,14 @@ export default function SolicitudesCompra({ perfil }) {
   async function handleBorrarTodo() {
     if (!window.confirm('¿Seguro que quieres borrar TODAS tus solicitudes de compra? Esta acción no se puede deshacer.')) return;
     try {
-      await borrarTodasMisSolicitudesCompra(perfil.nombre);
+      const myId = perfil?.uid || perfil?.id || perfil?.nombre;
+      await borrarTodasMisSolicitudesCompra(myId);
       alert('✅ Historial vaciado');
     } catch (e) {
       alert('Error: ' + e.message);
     }
   }
+
 
   async function handleEliminar(id) {
     if (!window.confirm('¿Eliminar esta solicitud?')) return;
@@ -93,6 +99,12 @@ export default function SolicitudesCompra({ perfil }) {
                 </div>
 
                 <h3 style={{ fontSize: 20, fontWeight: 900, color: C.secondary, margin: '0 0 12px' }}>{sol.nombre}</h3>
+                
+                {sol.caracteristicas && (
+                  <div style={{ fontSize: 12, color: C.textLight, whiteSpace: 'pre-line', marginBottom: 15, background: '#F8FAFC', padding: '10px', borderRadius: 12 }}>
+                    {sol.caracteristicas}
+                  </div>
+                )}
 
                 {/* Info Bar */}
                 <div style={{ display: 'flex', gap: 20, padding: '12px 0', borderTop: `1px solid #f1f5f9`, borderBottom: `1px solid #f1f5f9`, marginBottom: 15 }}>

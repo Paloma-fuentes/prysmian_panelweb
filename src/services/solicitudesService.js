@@ -32,7 +32,7 @@ export async function getSolicitudes(limite = 300) {
 }
 
 // ── Crear retiro (mismos campos que la app móvil) ──────────────────────────
-export async function crearSolicitud({ producto, materialId, cantidad, maquina, parteMaquina, usuario, solicitanteUid, notas = '' }) {
+export async function crearSolicitud({ producto, materialId, cantidad, maquina, parteMaquina, usuario, solicitanteUid, notas = '', correaDetalles = null }) {
   const ref = await addDoc(collection(db, COL), {
     producto,
     materialId:   materialId || '',
@@ -46,6 +46,7 @@ export async function crearSolicitud({ producto, materialId, cantidad, maquina, 
     creadoEn:     serverTimestamp(),
     actualizadoEn: serverTimestamp(),
     notas,
+    correaDetalles,
   });
 
   // Notificar al Pañol
@@ -53,6 +54,33 @@ export async function crearSolicitud({ producto, materialId, cantidad, maquina, 
     '📦 Nueva Solicitud (Web)',
     `${usuario} solicita ${cantidad}x ${producto} para ${maquina}.`,
     { tipo: 'retiro' }
+  ).catch(() => {});
+
+  return ref;
+}
+
+// ── Crear reserva de material urgente ──────────────────────────────────────
+export async function crearReserva({ producto, materialId, cantidad, maquina, usuario, solicitanteUid, notas = '' }) {
+  const ref = await addDoc(collection(db, COL), {
+    producto,
+    materialId:   materialId || '',
+    cantidad:     Number(cantidad),
+    maquina:      maquina    || 'N/A',
+    parteMaquina: 'General',
+    usuario:      usuario    || '',
+    solicitanteUid: solicitanteUid || '',
+    tipo:         'reserva',
+    urgente:      true,
+    estado:       'pendiente_entrega',
+    creadoEn:     serverTimestamp(),
+    actualizadoEn: serverTimestamp(),
+    notas,
+  });
+
+  notificarPanol(
+    '🔴 Reserva Urgente (Web)',
+    `${usuario} reserva ${cantidad}x ${producto} para ${maquina}.`,
+    { tipo: 'reserva' }
   ).catch(() => {});
 
   return ref;
@@ -195,6 +223,35 @@ export async function eliminarSolicitudConStock(solicitud) {
 
   batch.delete(doc(db, COL, solicitud.id));
   await batch.commit();
+}
+
+// ── Alerta de quiebre de stock (material_faltante) ─────────────────────────
+export async function crearAlertaFaltante({ materialNombre, cantidad, unidad = 'UND', urgente = false, comentario = '', maquina = 'N/A', usuario, solicitanteUid, solicitanteRol = '' }) {
+  const ref = await addDoc(collection(db, COL), {
+    producto:          materialNombre || '',
+    materialNombre:    materialNombre || '',
+    cantidad:          Number(cantidad),
+    unidad,
+    maquina:           maquina || 'N/A',
+    parteMaquina:      'General',
+    usuario:           usuario || '',
+    solicitanteUid:    solicitanteUid || '',
+    solicitanteRol,
+    tipo:              'material_faltante',
+    urgente:           !!urgente,
+    estado:            'pendiente',
+    comentario,
+    creadoEn:          serverTimestamp(),
+    actualizadoEn:     serverTimestamp(),
+  });
+
+  notificarPanol(
+    urgente ? '🚨 FALTANTE URGENTE (Web)' : '⚠️ Alerta de Faltante (Web)',
+    `${usuario} reporta falta de "${materialNombre}" (${cantidad} ${unidad}) en ${maquina}.`,
+    { tipo: 'material_faltante', urgente }
+  ).catch(() => {});
+
+  return ref;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

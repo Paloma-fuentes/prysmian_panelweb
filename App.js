@@ -19,21 +19,47 @@ import RetiroDirecto     from './src/pages/RetiroDirecto';
 import DevolucionDirecta from './src/pages/DevolucionDirecta';
 import ConteoInventario  from './src/pages/ConteoInventario';
 import CrearCompra       from './src/pages/CrearCompra';
+import MiConsumo            from './src/pages/MiConsumo';
+import AdminEstrategico    from './src/pages/AdminEstrategico';
+import GestionActivos      from './src/pages/GestionActivos';
+import AnalisisProveedores from './src/pages/AnalisisProveedores';
+import GuiaEscobillas      from './src/pages/GuiaEscobillas';
+import MapaBodega          from './src/pages/MapaBodega';
+import AnalisisConsumo     from './src/pages/AnalisisConsumo';
+import AnalisisMateriales  from './src/pages/AnalisisMateriales';
+import ReservaMaterial     from './src/pages/ReservaMaterial';
+import IngresoRapido       from './src/pages/IngresoRapido';
+import Historial           from './src/pages/Historial';
+import SolicitudMateriales from './src/pages/SolicitudMateriales';
+
 
 const PAGINAS = {
-  dashboard:         Dashboard,
-  inventario:        Inventario,
-  solicitudes:       Solicitudes,
-  crearCompra:       CrearCompra,
-  solicitudesCompra: SolicitudesCompra,
-  alertas:           Alertas,
-  analisis:          Analisis,
-  guiaCorreas:       GuiaCorreas,
-  importar:          ImportarExcel,
-  retiroDirecto:     RetiroDirecto,
-  devolucionDirecta: DevolucionDirecta,
-  conteo:            ConteoInventario,
+  dashboard:           Dashboard,
+  inventario:          Inventario,
+  solicitudes:         Solicitudes,
+  crearCompra:         CrearCompra,
+  solicitudesCompra:   SolicitudesCompra,
+  alertas:             Alertas,
+  analisis:            Analisis,
+  guiaCorreas:         GuiaCorreas,
+  importar:            ImportarExcel,
+  retiroDirecto:       RetiroDirecto,
+  devolucionDirecta:   DevolucionDirecta,
+  conteo:              ConteoInventario,
+  miConsumo:           MiConsumo,
+  adminEstrategico:    AdminEstrategico,
+  gestionActivos:      GestionActivos,
+  analisisProveedores: AnalisisProveedores,
+  guiaEscobillas:      GuiaEscobillas,
+  mapaBodega:          MapaBodega,
+  analisisConsumo:     AnalisisConsumo,
+  analisisMateriales:  AnalisisMateriales,
+  reservaMaterial:     ReservaMaterial,
+  ingresoRapido:       IngresoRapido,
+  historial:           Historial,
+  solicitudMateriales: SolicitudMateriales,
 };
+
 
 export default function App() {
   const [user, setUser]               = useState(undefined); // undefined = verificando
@@ -100,4 +126,5 @@ export default function App() {
       </main>
     </div>
   );
+
 }

@@ -42,7 +42,7 @@ async function obtenerTokensDeRoles(roles) {
 }
 
 export async function notificarPanol(titulo, cuerpo, datos = {}) {
-  const tokens = await obtenerTokensDeRoles(['panol', 'administrador']);
+  const tokens = await obtenerTokensDeRoles(['panol', 'admin']);
   await enviarPush(tokens, titulo, cuerpo, datos);
 }
 
@@ -54,3 +54,28 @@ export async function notificarUsuario(uid, titulo, cuerpo, datos = {}) {
     .filter((t) => t && t.startsWith('ExponentPushToken'));
   await enviarPush(tokens, titulo, cuerpo, datos);
 }
+
+/**
+ * Abre WhatsApp con un mensaje predefinido para urgencias
+ */
+export function enviarWhatsAppUrgente(solicitud) {
+  const numeroPanol = '56936289748'; // Número central del pañol
+  const esCompra = solicitud.tipo === undefined || solicitud.urgencia !== undefined; // Heurística simple
+  
+  const emoji = '🔴 URGENTE';
+  const nombre = solicitud.nombre || solicitud.producto || 'Producto';
+  const cantidad = solicitud.cantidad || 1;
+  const maquina = solicitud.maquina || 'N/A';
+  const usuario = solicitud.usuario || 'Usuario';
+
+  const mensaje = `${emoji} — ${esCompra ? 'Solicitud de Compra' : 'Solicitud de Retiro'}\n\n` +
+    `📦 *${nombre}*\n` +
+    `Cantidad: ${cantidad}\n` +
+    `Máquina: ${maquina}\n` +
+    `Solicitante: ${usuario}\n\n` +
+    `_Enviado desde Prysmian Panel Web_`;
+
+  const url = `https://wa.me/${numeroPanol}?text=${encodeURIComponent(mensaje)}`;
+  window.open(url, '_blank');
+}
+

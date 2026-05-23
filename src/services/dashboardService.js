@@ -2,22 +2,36 @@ import { collection, getDocs, query, where, orderBy, limit } from 'firebase/fire
 import { db } from '../config/firebase';
 
 export async function getKPIs() {
-  const [matSnap, histSnap, solSnap, comprasSnap] = await Promise.all([
+  const [matSnap, histSnap, solSnap, comprasSnap, userSnap] = await Promise.all([
     getDocs(collection(db, 'materiales')),
-    getDocs(query(collection(db, 'historial'), orderBy('fecha', 'desc'), limit(500))),
-    getDocs(query(collection(db, 'solicitudes'), where('estado', '==', 'pendiente_entrega'))),
-    getDocs(query(collection(db, 'solicitudes_compra'), where('estado', '==', 'en espera'))),
+    getDocs(query(collection(db, 'historial'), orderBy('fecha', 'desc'), limit(1000))),
+    getDocs(query(collection(db, 'solicitudes'))),
+    getDocs(query(collection(db, 'solicitudes_compra'))),
+    getDocs(collection(db, 'usuarios')),
   ]);
 
   const materiales = matSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-  const historial = histSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const historial   = histSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const usuarios    = userSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const userMap     = Object.fromEntries(usuarios.map(u => [u.id || u.uid, u.nombre + ' ' + (u.apellido || '')]));
 
-  // --- KPIs inventario ---
-  const totalProductos = materiales.length;
-  const conStock = materiales.filter(m => m.stock > 0).length;
-  const sinStock = materiales.filter(m => m.stock === 0).length;
-  const bajoStock = materiales.filter(m => m.bajoStock).length;
-  const criticos = materiales.filter(m => m.esCritico).length;
+  // --- Cálculo de Gastos Reales (Basado en Compras del Mes) ---
+  const compras = comprasSnap.docs.map(d => d.data());
+  const ahora = new Date();
+  const mesActual = ahora.getMonth();
+  const anioActual = ahora.getFullYear();
+
+  const comprasMes = compras.filter(c => {
+    const f = c.creadoEn?.toDate ? c.creadoEn.toDate() : new Date();
+    return f.getMonth() === mesActual && f.getFullYear() === anioActual;
+  });
+
+  const gastoMensual = comprasMes.reduce((acc, c) => acc + ((c.cantidad || 0) * (c.costoEstimado || 0)), 0);
+  const gastoPorCategoria = comprasMes.reduce((acc, c) => {
+    const cat = c.categoria || 'Otros';
+    acc[cat] = (acc[cat] || 0) + ((c.cantidad || 0) * (c.costoEstimado || 0));
+    return acc;
+  }, {});
 
   // --- Material más solicitado del mes (últimos 30 días) ---
   const hace30 = new Date();
@@ -57,11 +71,26 @@ export async function getKPIs() {
     .map(m => ({ id: m.id, nombre: m.descripcion, stock: m.stock, min: m.stockMinimo || 2 }))
     .slice(0, 5);
 
-  // --- Más solicitados del mes (Lista detallada) ---
-  const topProductosLista = Object.entries(porProducto)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([nombre, cantidad]) => ({ nombre, cantidad }));
+  // --- Consumo por Departamento (Área) ---
+  const porArea = {};
+  recientes.forEach(h => {
+    const area = h.area || 'General';
+    porArea[area] = (porArea[area] || 0) + (h.cantidad || 1);
+  });
+
+  // --- Ranking de Solicitantes ---
+  const porUsuario = {};
+  recientes.forEach(h => {
+    const uId = h.usuarioUid || h.solicitanteUid;
+    const nombre = userMap[uId] || h.usuario || 'Anonimo';
+    porUsuario[nombre] = (porUsuario[nombre] || 0) + (h.cantidad || 1);
+  });
+
+  // --- KPI Quiebre de Stock ---
+  // Estimado por historial de stock 0 en retiros (aproximación)
+  const totalRetirosIntento = historial.filter(h => h.tipo === 'retiro').length;
+  const quiebres = historial.filter(h => h.tipo === 'retiro' && h.nota?.toLowerCase().includes('sin stock')).length;
+  const stockoutRate = totalRetirosIntento > 0 ? (quiebres / totalRetirosIntento) * 100 : 0;
 
   // --- Últimos movimientos ---
   const ultimosMovimientos = historial.slice(0, 20);
@@ -73,16 +102,18 @@ export async function getKPIs() {
     conStock,
     sinStock,
     bajoStock,
-    criticos,
-    solicitudesPendientes: solSnap.docs.length,
-    comprasEnEspera:       comprasSnap.docs.length,
+    gastoMensual,
+    gastoPorCategoria,
+    stockoutRate,
+    consumoPorArea: Object.entries(porArea).map(([name, value]) => ({ name, value })),
+    rankingUsuarios: Object.entries(porUsuario).sort((a,b) => b[1] - a[1]).slice(0, 5).map(([name, value]) => ({ name, value })),
+    solicitudesPendientes: solSnap.docs.filter(d => d.data().estado === 'pendiente_entrega').length,
+    comprasEnEspera:       comprasSnap.docs.filter(d => d.data().estado === 'en espera').length,
     comprasUrgentes,
-    topProducto: topProducto ? { nombre: topProducto[0], cantidad: topProducto[1] } : null,
-    topProductosLista,
+    topProductosLista: Object.entries(porProducto).sort((a,b) => b[1] - a[1]).slice(0, 5).map(([nombre, cantidad]) => ({ nombre, cantidad })),
     topMaquinas,
     sugerenciasCompra,
     sinRotacion: sinRotacion.length,
-    sinRotacionLista: sinRotacion.slice(0, 10),
     ultimosMovimientos,
   };
 }

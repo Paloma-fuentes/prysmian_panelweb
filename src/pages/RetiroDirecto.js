@@ -50,9 +50,24 @@ export default function RetiroDirecto({ perfil }) {
   const [ubicacion, setUbicacion] = useState('');
   const [notas, setNotas] = useState('');
   const [guardando, setGuardando] = useState(false);
+  const [urgente, setUrgente]   = useState(false);
+
+  // Estados para Correas
+  const [esCorrea, setEsCorrea] = useState(false);
+  const [correaPosicion, setCorreaPosicion] = useState('');
+  const [correaTieneNum, setCorreaTieneNum] = useState(false);
+  const [correaNumero, setCorreaNumero] = useState('');
+
+  function esCorreaOBanda(m) {
+    if (!m) return false;
+    const tipo = (m.tipoMaterial || '').toLowerCase();
+    const desc = (m.descripcion || '').toLowerCase();
+    return tipo === 'correa' || desc.includes('correa') || desc.includes('banda') || desc.includes('belt');
+  }
 
   function manejarSeleccionProducto(p) {
     setProducto(p);
+    setEsCorrea(esCorreaOBanda(p));
     if (p?.ubicacion) setUbicacion(p.ubicacion);
     if (p?.unidad) setUnidad(p.unidad);
   }
@@ -72,7 +87,12 @@ export default function RetiroDirecto({ perfil }) {
       maquina,
       parte,
       ubicacion,
-      notas
+      notas,
+      correaDetalles: esCorrea ? {
+        posicion: correaPosicion,
+        tieneNumero: correaTieneNum,
+        numero: correaTieneNum ? correaNumero : null
+      } : null
     };
 
     setItems([...items, nuevoItem]);
@@ -105,7 +125,12 @@ export default function RetiroDirecto({ perfil }) {
         maquina,
         parte: parte || 'General',
         ubicacion,
-        notas
+        notas,
+        correaDetalles: esCorrea ? {
+          posicion: correaPosicion,
+          tieneNumero: correaTieneNum,
+          numero: correaTieneNum ? correaNumero : null
+        } : null
       });
     }
 
@@ -127,8 +152,23 @@ export default function RetiroDirecto({ perfil }) {
           ubicacion: item.ubicacion,
           notas: item.notas,
           usuario: perfil?.nombre || 'Web User',
-          solicitanteUid: perfil?.id || perfil?.uid || ''
+          solicitanteUid: perfil?.id || perfil?.uid || '',
+          correaDetalles: item.correaDetalles || null,
+          urgencia: urgente ? 'alta' : 'normal'
         });
+
+        // Si es urgente, enviar WhatsApp
+        if (urgente) {
+          const { enviarWhatsAppUrgente } = await import('../services/notificacionesService');
+          enviarWhatsAppUrgente({
+            producto: item.producto,
+            cantidad: item.cantidad,
+            maquina: item.maquina,
+            usuario: perfil?.nombre || 'Usuario Web',
+            tipo: 'retiro',
+            urgencia: 'alta'
+          });
+        }
       }
       
       alert('🚀 Solicitud enviada correctamente al pañol.');
@@ -139,6 +179,7 @@ export default function RetiroDirecto({ perfil }) {
       setParte('');
       setUbicacion('');
       setNotas('');
+      setUrgente(false);
     } catch (e) {
       alert('Error: ' + e.message);
     } finally {
@@ -200,9 +241,55 @@ export default function RetiroDirecto({ perfil }) {
 
             {/* 4. Parte de la Máquina */}
             <div>
-              <label style={s.label}>Parte de la Máquina (Zona de falla)</label>
+              <label style={s.label}>Parte de la Máquina (Zona de falla) *</label>
               <input style={s.input} value={parte} onChange={e => setParte(e.target.value)} placeholder="Ej: Motor, Transmisión, Banda..." />
             </div>
+
+            {/* SECCIÓN CORREAS CONDICIONAL */}
+            {esCorrea && (
+              <div style={s.correaBox}>
+                <div style={{ fontSize: 14, fontWeight: 900, color: C.primary, marginBottom: 15, display: 'flex', alignItems: 'center', gap: 8 }}>
+                   <span>⚙️</span> DETALLES DE LA CORREA
+                </div>
+                
+                <div style={{ marginBottom: 15 }}>
+                  <label style={s.label}>Posición</label>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {['Superior', 'Inferior'].map(p => (
+                      <button 
+                        key={p} 
+                        onClick={() => setCorreaPosicion(p)}
+                        style={{ ...s.posBtn, ...(correaPosicion === p ? s.posBtnAct : {}) }}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+                  <label style={{ ...s.label, margin: 0 }}>¿Tiene numeración?</label>
+                  <div 
+                    onClick={() => setCorreaTieneNum(!correaTieneNum)}
+                    style={{ ...s.toggle, background: correaTieneNum ? C.primary : '#CBD5E1' }}
+                  >
+                    <div style={{ ...s.toggleCircle, transform: `translateX(${correaTieneNum ? '24px' : '2px'})` }} />
+                  </div>
+                </div>
+
+                {correaTieneNum && (
+                  <div>
+                    <label style={s.label}>Número de la correa</label>
+                    <input 
+                      style={s.input} 
+                      value={correaNumero} 
+                      onChange={e => setCorreaNumero(e.target.value)} 
+                      placeholder="Ej: 5M-1000" 
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* 5. Ubicación */}
             <div>
@@ -214,6 +301,20 @@ export default function RetiroDirecto({ perfil }) {
             <div>
               <label style={s.label}>Notas / Observaciones</label>
               <textarea style={{ ...s.input, height: 80, resize: 'none' }} value={notas} onChange={e => setNotas(e.target.value)} placeholder="Opcional..." />
+            </div>
+
+            {/* Checkbox Urgente */}
+            <div 
+              onClick={() => setUrgente(!urgente)}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '15px', background: urgente ? '#FFF1F2' : '#F8FAFC', borderRadius: 16, cursor: 'pointer', border: `1px solid ${urgente ? '#FECDD3' : 'transparent'}`, transition: '0.2s' }}
+            >
+              <div style={{ ...s.toggle, width: 44, height: 24, background: urgente ? C.error : '#CBD5E1' }}>
+                <div style={{ ...s.toggleCircle, width: 20, height: 20, transform: `translateX(${urgente ? '22px' : '2px'})` }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: urgente ? C.error : C.secondary }}>🚨 MARCAR COMO URGENTE</div>
+                <div style={{ fontSize: 11, color: urgente ? '#E11D48' : C.textLight }}>Notifica inmediatamente por WhatsApp al Pañol</div>
+              </div>
             </div>
 
             {/* Listado de items ya agregados */}
@@ -257,5 +358,10 @@ const s = {
   uBtn: { padding: '12px 14px', borderRadius: 10, border: `1px solid ${C.border}`, background: '#F8FAFC', fontSize: 11, fontWeight: 800, color: C.textSecondary, cursor: 'pointer' },
   uBtnActive: { background: C.primary, color: '#fff', borderColor: C.primary },
   addBtn: { width: '100%', background: 'none', border: `2px dashed ${C.primary}30`, borderRadius: 14, padding: '15px', color: C.primary, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 10 },
-  submitBtn: { width: '100%', background: C.primary, color: '#fff', border: 'none', borderRadius: 14, padding: '18px', fontSize: 16, fontWeight: 800, cursor: 'pointer', marginTop: 5, boxShadow: '0 4px 12px rgba(244,130,31,0.2)' }
+  submitBtn: { width: '100%', background: C.primary, color: '#fff', border: 'none', borderRadius: 14, padding: '18px', fontSize: 16, fontWeight: 800, cursor: 'pointer', marginTop: 5, boxShadow: '0 4px 12px rgba(244,130,31,0.2)' },
+  correaBox: { background: '#F8FAFC', padding: '20px', borderRadius: 20, border: `1px solid ${C.primary}30`, margin: '10px 0' },
+  posBtn: { flex: 1, padding: '12px', borderRadius: 10, border: `1px solid ${C.border}`, background: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: '0.2s' },
+  posBtnAct: { background: C.primary, color: '#fff', borderColor: C.primary },
+  toggle: { width: 50, height: 26, borderRadius: 13, position: 'relative', cursor: 'pointer', transition: '0.3s' },
+  toggleCircle: { width: 22, height: 22, borderRadius: 11, background: '#fff', position: 'absolute', top: 2, transition: '0.3s', boxShadow: '0 2px 4px rgba(0,0,0,0.2)' },
 };

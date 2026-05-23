@@ -48,16 +48,51 @@ export async function getMateriales(filtros = {}) {
 }
 
 export async function buscarMateriales(texto) {
-  const snap = await getDocs(query(collection(db, COL), orderBy('descripcion')));
-  const t    = texto.toLowerCase();
-  return snap.docs
+  if (!texto) return [];
+  // Quitamos orderBy para asegurar que traiga TODO (incluso si le falta algún campo)
+  const snap = await getDocs(collection(db, COL));
+  const t = texto.toLowerCase();
+
+  
+  const matches = snap.docs
     .map(d => ({ id: d.id, ...d.data() }))
-    .filter(m =>
-      m.descripcion?.toLowerCase().includes(t) ||
-      m.codigoSAP?.toLowerCase().includes(t)   ||
-      m.ubicacion?.toLowerCase().includes(t)
-    );
+    .filter(m => {
+      const desc = (m.descripcion || m.nombre || m.producto || '').toLowerCase();
+      const sap  = (m.codigoSAP || '').toLowerCase();
+      const ubic = (m.ubicacion || '').toLowerCase();
+      
+      return desc.includes(t) || sap.includes(t) || ubic.includes(t);
+    });
+
+
+  // Ranking inteligente
+  return matches.sort((a, b) => {
+    const aDesc = (a.descripcion || a.nombre || a.producto || '').toLowerCase();
+    const bDesc = (b.descripcion || b.nombre || b.producto || '').toLowerCase();
+    const aSap  = (a.codigoSAP || '').toLowerCase();
+    const bSap  = (b.codigoSAP || '').toLowerCase();
+
+    // 1. Prioridad: Coincidencia exacta en SAP
+    if (aSap === t && bSap !== t) return -1;
+    if (bSap === t && aSap !== t) return 1;
+
+    // 2. Prioridad: Comienza con el texto en SAP
+    if (aSap.startsWith(t) && !bSap.startsWith(t)) return -1;
+    if (bSap.startsWith(t) && !aSap.startsWith(t)) return 1;
+
+    // 3. Prioridad: Coincidencia exacta en descripción
+    if (aDesc === t && bDesc !== t) return -1;
+    if (bDesc === t && aDesc !== t) return 1;
+
+    // 4. Prioridad: Comienza con el texto en descripción
+    if (aDesc.startsWith(t) && !bDesc.startsWith(t)) return -1;
+    if (bDesc.startsWith(t) && !aDesc.startsWith(t)) return 1;
+
+    // 5. Orden alfabético por defecto
+    return aDesc.localeCompare(bDesc);
+  });
 }
+
 
 export async function getMaterial(id) {
   const snap = await getDoc(doc(db, COL, id));

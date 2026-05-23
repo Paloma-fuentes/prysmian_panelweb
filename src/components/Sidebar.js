@@ -1,19 +1,46 @@
 import { C, G } from '../theme';
 
 const MENU = [
-  { id: 'dashboard',         label: 'Inicio',                icon: '🏠', roles: ['admin', 'panol', 'mantencion', 'planta', 'externos'] },
-  { id: 'retiroDirecto',     label: 'Retiro',                icon: '📤', roles: ['admin', 'panol', 'mantencion'] },
-  { id: 'solicitudes',       label: 'Mis Retiros',           icon: '📋', roles: ['admin', 'panol', 'mantencion', 'planta', 'externos'] },
-  { id: 'crearCompra',       label: 'Comprar',               icon: '🛒', roles: ['admin', 'panol', 'mantencion'] },
-  { id: 'solicitudesCompra', label: 'Mis Compras',           icon: '📋', roles: ['admin', 'panol', 'mantencion'] },
-  { id: 'conteo',            label: 'Conteo',                icon: '📋', roles: ['admin', 'panol', 'mantencion'] },
-  { id: 'analisis',          label: 'Dashboard Máquinas',    icon: '📊', roles: ['admin', 'panol', 'mantencion'] },
-  { id: 'guiaCorreas',       label: 'Guía de Correas',       icon: '⛓️', roles: ['admin', 'panol', 'mantencion'] },
-  { id: 'importar',          label: 'Gestión masiva',        icon: '📁', roles: ['admin'] },
+  // ── Todos los roles ──────────────────────────────────────────
+  { id: 'dashboard',           label: 'Inicio',                  icon: '🏠', roles: ['admin', 'panol', 'mantencion', 'planta', 'externos'] },
+  { id: 'inventario',          label: 'Inventario',              icon: '📦', roles: ['admin', 'panol', 'mantencion', 'planta', 'externos'] },
+  { id: 'analisisMateriales',  label: 'Análisis del Mes',        icon: '📈', roles: ['admin', 'panol', 'mantencion', 'planta', 'externos'] },
+
+  // ── Mantencion / Planta / Externos ───────────────────────────
+  { id: 'retiroDirecto',       label: 'Retiro',                  icon: '📤', roles: ['mantencion', 'planta', 'externos'] },
+  { id: 'reservaMaterial',     label: 'Reserva Urgente',         icon: '🔴', roles: ['mantencion', 'planta', 'externos'] },
+  { id: 'solicitudes',         label: 'Mis Retiros',             icon: '📋', roles: ['mantencion', 'planta', 'externos'] },
+  { id: 'miConsumo',           label: 'Mi Consumo',              icon: '📊', roles: ['planta', 'externos'] },
+  { id: 'solicitudMateriales',  label: 'Reportar Faltante',       icon: '🚨', roles: ['mantencion', 'planta', 'externos'] },
+  { id: 'crearCompra',         label: 'Solicitar Compra',        icon: '🛒', roles: ['mantencion', 'planta', 'externos'] },
+  { id: 'solicitudesCompra',   label: 'Mis Compras',             icon: '📋', roles: ['mantencion', 'planta', 'externos'] },
+
+  // ── Pañol / Admin (operación) ─────────────────────────────────
+  { id: 'ingresoRapido',       label: 'Ingreso Rápido',          icon: '📥', roles: ['admin', 'panol'] },
+  { id: 'mapaBodega',          label: 'Mapa de Bodega',          icon: '🗺️', roles: ['admin', 'panol'] },
+  { id: 'conteo',              label: 'Conteo Inventario',       icon: '📋', roles: ['admin', 'panol', 'mantencion'] },
+  { id: 'historial',           label: 'Historial Movimientos',   icon: '📜', roles: ['admin', 'panol'] },
+
+  // ── Guías técnicas ────────────────────────────────────────────
+  { id: 'guiaCorreas',         label: 'Guía de Correas',         icon: '⛓️', roles: ['admin', 'panol', 'mantencion'] },
+  { id: 'guiaEscobillas',      label: 'Guía de Escobillas',      icon: '⚡', roles: ['admin', 'panol', 'mantencion'] },
+
+  // ── Análisis ──────────────────────────────────────────────────
+  { id: 'analisis',            label: 'Dashboard Máquinas',      icon: '📊', roles: ['admin', 'panol', 'mantencion'] },
+  { id: 'analisisConsumo',     label: 'Análisis de Consumo',     icon: '🔬', roles: ['admin', 'panol'] },
+
+  // ── Administración ────────────────────────────────────────────
+  { id: 'adminEstrategico',    label: 'Inteligencia Jefatura',   icon: '🧠', roles: ['admin', 'panol'] },
+  { id: 'gestionActivos',      label: 'Activos y Herramientas',  icon: '🧰', roles: ['admin', 'panol'] },
+  { id: 'analisisProveedores', label: 'Análisis de Compras',     icon: '🛒', roles: ['admin', 'panol'] },
+  { id: 'importar',            label: 'Gestión Masiva',          icon: '📁', roles: ['panol'] },
 ];
 
 export default function Sidebar({ pagina, setPagina, navegar, onLogout, perfil }) {
-  const rolActual = perfil?.rol || 'mantencion';
+  let rolActual = (perfil?.rol || 'mantencion').toLowerCase();
+  // Normalizar: si es 'administrador', tratar como 'admin'
+  if (rolActual === 'administrador') rolActual = 'admin';
+  
   const menuFiltrado = MENU.filter(item => item.roles.includes(rolActual));
 
   return (

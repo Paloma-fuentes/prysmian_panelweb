@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { C, G } from '../theme';
 import { crearSolicitudCompra } from '../services/solicitudesCompraService';
+import { enviarWhatsAppUrgente } from '../services/notificacionesService';
 import { buscarMateriales } from '../services/inventarioService';
+
 
 const CATEGORIAS = ['Eléctricos', 'Mecánico', 'Pernería', 'Lubricación', 'Correas', 'Otros'];
 const MAQUINAS = [
@@ -34,6 +36,7 @@ export default function CrearCompra({ perfil }) {
   const [maquina, setMaquina]         = useState('');
   const [parte, setParte]             = useState('');
   const [caracteristicas, setCaract]  = useState('');
+  const [costoEstimado, setCosto]     = useState('');
   const [prioridad, setPrioridad]     = useState('Stock para Bodega');
 
   async function handleSearch(texto) {
@@ -44,7 +47,7 @@ export default function CrearCompra({ perfil }) {
     
     setSap(texto);
     const res = await buscarMateriales(texto || '');
-    setResultados(res.slice(0, 8)); // Mostrar top 8
+    setResultados(res.slice(0, 30)); // Aumentado a 30 para mayor visibilidad
     setShowResultados(true);
   }
 
@@ -64,6 +67,7 @@ export default function CrearCompra({ perfil }) {
   const [correaDetalle, setCorreaDetalle] = useState('');
   const [correaNombre, setCorreaNombre]   = useState('');
   const [correaNumeracion, setCorreaNum]  = useState(false);
+  const [correaNumero, setCorreaNumero]   = useState('');
 
   // Mediciones extra fields
   const [medDientes, setMedDientes] = useState('');
@@ -84,7 +88,7 @@ export default function CrearCompra({ perfil }) {
         nombreFinal = nombre ? `${nombre} (SAP: ${sap})` : `SAP: ${sap}`;
       }
 
-      await crearSolicitudCompra({
+      const solicitud = {
         tipoProducto: tabTipo,
         nombre: nombreFinal,
         cantidad: Number(cantidad),
@@ -93,13 +97,22 @@ export default function CrearCompra({ perfil }) {
         maquina: maquina || 'N/A',
         parteMaquina: parte || 'N/A',
         prioridad,
+        costoEstimado: Number(costoEstimado) || 0,
         usuario: perfil?.nombre || 'Web User',
         caracteristicas: `
           ${caracteristicas}
-          ${categoria === 'Correas' ? `\n[CORREA] Detalle: ${correaDetalle} | Nombre técnico: ${correaNombre} | Numeración: ${correaNumeracion ? 'SÍ' : 'NO'}` : ''}
+          ${categoria === 'Correas' ? `\n[CORREA] Posición: ${correaDetalle} | Nombre técnico: ${correaNombre} | Numeración: ${correaNumeracion ? correaNumero : 'NO'}` : ''}
           \n[MEDICIONES] Dientes: ${medDientes || 'N/A'} | Metros: ${medMetros || 'N/A'} | Unidad: ${medUnidad} | Ancho: ${medAncho || 'N/A'} | Espesor: ${medEspesor || 'N/A'}
         `.trim()
-      });
+      };
+
+      await crearSolicitudCompra(solicitud);
+
+      // Si es urgente, enviar también por WhatsApp
+      if (prioridad === 'Urgencia') {
+        enviarWhatsAppUrgente(solicitud);
+      }
+
       alert('✅ Solicitud de compra creada con éxito');
       // Reset
       setNombre(''); setSap(''); setCantidad('1'); setCategoria(''); setMaquina(''); setParte(''); setCaract('');
@@ -125,22 +138,26 @@ export default function CrearCompra({ perfil }) {
             <label style={s.label}>Tipo de Producto</label>
             <div style={{ display: 'flex', gap: 10, background: '#F1F5F9', padding: '6px', borderRadius: 16 }}>
               <button onClick={() => setTabTipo('nuevo')} style={{ ...s.tab, ...(tabTipo === 'nuevo' ? s.tabActive : {}) }}>Producto Nuevo</button>
-              <button onClick={() => setTabTipo('sap')} style={{ ...s.tab, ...(tabTipo === 'sap' ? s.tabActive : {}) }}>Registrado (SAP)</button>
+              <button onClick={() => setTabTipo('sap')} style={{ ...s.tab, ...(tabTipo === 'sap' ? s.tabActive : {}) }}>Registrado en Inventario</button>
             </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 25 }}>
             {/* Input Dinámico */}
             <div style={{ position: 'relative' }}>
-              <label style={s.label}>{tabTipo === 'nuevo' ? 'Nombre del Repuesto *' : 'Código SAP o Nombre del Repuesto *'}</label>
+              <label style={s.label}>{tabTipo === 'nuevo' ? 'Nombre del Repuesto *' : 'Buscar en Inventario (SAP, Nombre o Ubicación) *'}</label>
               <input 
                 style={s.input} 
+                onFocus={e => Object.assign(e.target.style, s.inputFocus)}
+                onBlur={e => {
+                  Object.assign(e.target.style, s.input);
+                  setTimeout(() => setShowResultados(false), 200);
+                }}
                 value={tabTipo === 'nuevo' ? nombre : sap} 
                 onChange={e => handleSearch(e.target.value)}
-                onFocus={() => handleSearch(sap)}
-                onBlur={() => setTimeout(() => setShowResultados(false), 200)}
-                placeholder={tabTipo === 'nuevo' ? 'Ej: Rodamiento SKF...' : 'Escribe el código SAP o el nombre para buscar...'}
+                placeholder={tabTipo === 'nuevo' ? 'Ej: Rodamiento SKF...' : 'Escribe nombre, SAP o ubicación para buscar...'}
               />
+
               
               {tabTipo === 'sap' && showResultados && resultados.length > 0 && (
                 <div style={s.dropdown}>
@@ -152,8 +169,9 @@ export default function CrearCompra({ perfil }) {
                     >
                       <div style={{ fontWeight: 700, color: C.secondary }}>{m.descripcion}</div>
                       <div style={{ fontSize: 11, color: C.textLight }}>
-                        SAP: {m.codigoSAP || 'N/A'} · Stock: {m.stock || 0} · Ubic: {m.ubicacion || 'N/A'}
+                        {m.codigoSAP ? `SAP: ${m.codigoSAP}` : 'Sin SAP'} · Stock: {m.stock || 0} · Ubic: {m.ubicacion || 'N/A'}
                       </div>
+
                     </div>
                   ))}
                 </div>
@@ -199,32 +217,72 @@ export default function CrearCompra({ perfil }) {
                  <label style={s.label}>Parte de la máquina (Opcional)</label>
                  <input style={s.input} value={parte} onChange={e => setParte(e.target.value)} placeholder="Esta parte es opcional" />
                </div>
+               <div>
+                 <label style={s.label}>Costo Unitario Estimado ($) *</label>
+                 <input type="number" style={s.input} value={costoEstimado} onChange={e => setCosto(e.target.value)} placeholder="Ej: 5000" />
+               </div>
             </div>
 
             {/* Condicional Correas */}
             {categoria === 'Correas' && (
               <div style={s.subSection}>
-                <h3 style={s.subTitle}>Detalles de la Correa</h3>
+                <h3 style={s.subTitle}><span>⚙️</span> Detalles de la Correa</h3>
                 <div style={{ display: 'flex', gap: 10, marginBottom: 15 }}>
                   {['Superior', 'Inferior'].map(d => (
                     <button key={d} onClick={() => setCorreaDetalle(d)} style={{ ...s.tab, flex: 1, ...(correaDetalle === d ? s.tabActive : {}) }}>{d}</button>
                   ))}
                 </div>
                 <label style={s.label}>Nombre técnico de la correa</label>
-                <input style={s.input} value={correaNombre} onChange={e => setCorreaNombre(e.target.value)} placeholder="Ej: Correa Dentada" />
+                <input 
+                  style={s.input} 
+                  onFocus={e => Object.assign(e.target.style, s.inputFocus)}
+                  onBlur={e => Object.assign(e.target.style, s.input)}
+                  value={correaNombre} 
+                  onChange={e => setCorreaNombre(e.target.value)} 
+                  placeholder="Ej: Correa Dentada" 
+                />
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 15 }}>
                   <span style={s.label}>¿Tiene numeración?</span>
                   <input type="checkbox" checked={correaNumeracion} onChange={e => setCorreaNum(e.target.checked)} style={{ width: 20, height: 20 }} />
                 </div>
+                {correaNumeracion && (
+                  <div style={{ marginTop: 15 }}>
+                    <label style={s.label}>Número de la correa (Numeración)</label>
+                    <input 
+                      style={s.input} 
+                      onFocus={e => Object.assign(e.target.style, s.inputFocus)}
+                      onBlur={e => Object.assign(e.target.style, s.input)}
+                      value={correaNumero} 
+                      onChange={e => setCorreaNumero(e.target.value)} 
+                      placeholder="Ej: 5M-1000" 
+                    />
+                  </div>
+                )}
               </div>
             )}
 
             {/* Mediciones (Opcionales) */}
             <div style={s.subSection}>
-              <h3 style={s.subTitle}>Mediciones (Opcionales)</h3>
+              <h3 style={s.subTitle}><span>📏</span> Mediciones (Opcionales)</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15, marginBottom: 15 }}>
-                <div><label style={s.label}>Dientes</label><input style={s.input} value={medDientes} onChange={e => setMedDientes(e.target.value)} placeholder="Ej: 40" /></div>
-                <div><label style={s.label}>Metros</label><input style={s.input} value={medMetros} onChange={e => setMedMetros(e.target.value)} placeholder="Ej: 2.5" /></div>
+                <div>
+                  <label style={s.label}>Dientes</label>
+                  <input 
+                    style={s.input} 
+                    onFocus={e => Object.assign(e.target.style, s.inputFocus)}
+                    onBlur={e => Object.assign(e.target.style, s.input)}
+                    value={medDientes} onChange={e => setMedDientes(e.target.value)} placeholder="Ej: 40" 
+                  />
+                </div>
+                <div>
+                  <label style={s.label}>Metros</label>
+                  <input 
+                    style={s.input} 
+                    onFocus={e => Object.assign(e.target.style, s.inputFocus)}
+                    onBlur={e => Object.assign(e.target.style, s.input)}
+                    value={medMetros} onChange={e => setMedMetros(e.target.value)} placeholder="Ej: 2.5" 
+                  />
+                </div>
               </div>
               <label style={s.label}>Unidad para Ancho/Espesor</label>
               <div style={{ display: 'flex', gap: 5, marginBottom: 15 }}>
@@ -233,15 +291,36 @@ export default function CrearCompra({ perfil }) {
                 ))}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15 }}>
-                <div><label style={s.label}>Ancho</label><input style={s.input} value={medAncho} onChange={e => setMedAncho(e.target.value)} placeholder="Ej: 20" /></div>
-                <div><label style={s.label}>Espesor</label><input style={s.input} value={medEspesor} onChange={e => setMedEspesor(e.target.value)} placeholder="Ej: 5" /></div>
+                <div>
+                  <label style={s.label}>Ancho</label>
+                  <input 
+                    style={s.input} 
+                    onFocus={e => Object.assign(e.target.style, s.inputFocus)}
+                    onBlur={e => Object.assign(e.target.style, s.input)}
+                    value={medAncho} onChange={e => setMedAncho(e.target.value)} placeholder="Ej: 20" 
+                  />
+                </div>
+                <div>
+                  <label style={s.label}>Espesor</label>
+                  <input 
+                    style={s.input} 
+                    onFocus={e => Object.assign(e.target.style, s.inputFocus)}
+                    onBlur={e => Object.assign(e.target.style, s.input)}
+                    value={medEspesor} onChange={e => setMedEspesor(e.target.value)} placeholder="Ej: 5" 
+                  />
+                </div>
               </div>
             </div>
 
             {/* Características */}
             <div>
               <label style={s.label}>Características (Opcional)</label>
-              <textarea style={{ ...s.input, height: 100, resize: 'none' }} value={caracteristicas} onChange={e => setCaract(e.target.value)} placeholder="Describe detalles técnicos adicionales..." />
+              <textarea 
+                style={{ ...s.input, height: 100, resize: 'none' }} 
+                onFocus={e => Object.assign(e.target.style, s.inputFocus)}
+                onBlur={e => Object.assign(e.target.style, { ...s.input, height: 100, resize: 'none' })}
+                value={caracteristicas} onChange={e => setCaract(e.target.value)} placeholder="Describe detalles técnicos adicionales..." 
+              />
             </div>
 
             {/* Prioridad */}
@@ -255,6 +334,7 @@ export default function CrearCompra({ perfil }) {
                 ))}
               </div>
             </div>
+
 
             {/* Submit */}
             <button 
@@ -274,16 +354,22 @@ export default function CrearCompra({ perfil }) {
 
 const s = {
   label: { display: 'block', fontSize: 13, fontWeight: 700, color: C.secondary, marginBottom: 8 },
-  input: { width: '100%', padding: '15px 20px', borderRadius: 16, border: `1px solid ${C.border}`, background: '#F8FAFC', outline: 'none', boxSizing: 'border-box' },
+  input: { 
+    width: '100%', padding: '15px 20px', borderRadius: 16, border: `1px solid ${C.border}`, 
+    background: '#F8FAFC', outline: 'none', boxSizing: 'border-box', transition: 'all 0.2s ease',
+    fontSize: 15
+  },
+  inputFocus: { borderColor: C.primary, background: '#fff', boxShadow: '0 0 0 4px rgba(244,130,31,0.1)' },
   tab: { flex: 1, padding: '12px', border: 'none', borderRadius: 12, cursor: 'pointer', fontWeight: 700, background: 'transparent', color: C.textSecondary, transition: '0.2s' },
   tabActive: { background: C.primary, color: '#fff', boxShadow: '0 4px 10px rgba(244,130,31,0.2)' },
-  uBtn: { padding: '12px', borderRadius: 12, border: `1px solid ${C.border}`, background: '#fff', fontSize: 12, fontWeight: 800, color: C.textSecondary, minWidth: 60 },
+  uBtn: { padding: '12px', borderRadius: 12, border: `1px solid ${C.border}`, background: '#fff', fontSize: 12, fontWeight: 800, color: C.textSecondary, minWidth: 60, cursor: 'pointer', transition: '0.2s' },
   uBtnActive: { background: C.primary, color: '#fff', borderColor: C.primary },
-  catBtn: { padding: '10px 20px', borderRadius: 20, border: `1px solid ${C.border}`, background: '#fff', fontSize: 13, fontWeight: 700, color: C.textSecondary, cursor: 'pointer' },
-  catBtnActive: { background: C.primary, color: '#fff', borderColor: C.primary },
-  subSection: { background: '#F8FAFC', borderRadius: 24, padding: '25px', border: `1px solid ${C.border}` },
-  subTitle: { fontSize: 16, fontWeight: 800, color: C.secondary, marginBottom: 15, marginTop: 0 },
-  submitBtn: { width: '100%', padding: '20px', borderRadius: 20, border: 'none', background: C.primary, color: '#fff', fontSize: 17, fontWeight: 900, cursor: 'pointer', boxShadow: '0 10px 25px rgba(244,130,31,0.3)', marginTop: 10 },
+  catBtn: { padding: '10px 20px', borderRadius: 20, border: `1px solid ${C.border}`, background: '#fff', fontSize: 13, fontWeight: 700, color: C.textSecondary, cursor: 'pointer', transition: '0.2s' },
+  catBtnActive: { background: C.primary, color: '#fff', borderColor: C.primary, boxShadow: '0 4px 10px rgba(244,130,31,0.15)' },
+  subSection: { background: '#fff', borderRadius: 24, padding: '25px', border: `1px solid ${C.border}`, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)' },
+  subTitle: { fontSize: 16, fontWeight: 800, color: C.secondary, marginBottom: 15, marginTop: 0, display: 'flex', alignItems: 'center', gap: 10 },
+  submitBtn: { width: '100%', padding: '20px', borderRadius: 20, border: 'none', background: C.primary, color: '#fff', fontSize: 17, fontWeight: 900, cursor: 'pointer', boxShadow: '0 10px 25px rgba(244,130,31,0.3)', marginTop: 10, transition: '0.2s' },
   dropdown: { position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', borderRadius: 16, boxShadow: G.cardShadowLg, marginTop: 10, zIndex: 10, maxHeight: 250, overflowY: 'auto', border: `1px solid ${C.border}` },
   dropItem: { padding: '15px 20px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', transition: '0.2s' }
 };
+

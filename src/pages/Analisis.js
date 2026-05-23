@@ -3,11 +3,14 @@ import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { C, G } from '../theme';
 
-export default function Analisis() {
+export default function Analisis({ perfil }) {
   const [maquinas, setMaquinas]     = useState([]);
   const [historial, setHistorial]   = useState([]);
   const [loading, setLoading]       = useState(true);
   const [maquinaSel, setMaquinaSel] = useState(null);
+
+  const esAdmin = perfil?.rol === 'admin' || perfil?.rol === 'panol';
+
 
   useEffect(() => {
     cargar();
@@ -181,10 +184,14 @@ export default function Analisis() {
                 </div>
              </div>
 
-             <div style={{ fontSize: 12, fontWeight: 800, color: C.textLight, letterSpacing: 1, marginBottom: 15 }}>HISTORIAL COMPLETO DE MOVIMIENTOS</div>
+             <div style={{ fontSize: 12, fontWeight: 800, color: C.textLight, letterSpacing: 1, marginBottom: 15 }}>HISTORIAL DE MOVIMIENTOS</div>
              <div style={{ height: 300, overflowY: 'auto', paddingRight: 10 }}>
                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {historial.filter(h => h.maquina?.trim() === maquinaSel.nombre).map(h => (
+                    {historial
+                      .filter(h => h.maquina?.trim() === maquinaSel.nombre)
+                      .filter(h => esAdmin || (h.usuario === perfil?.nombre) || (h.solicitanteUid === perfil?.uid))
+                      .map(h => (
+
                       <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px', background: '#fff', border: `1px solid ${C.border}`, borderRadius: 12 }}>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: 14, fontWeight: 800, color: C.secondary }}>{h.producto}</div>

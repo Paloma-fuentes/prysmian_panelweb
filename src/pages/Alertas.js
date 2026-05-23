@@ -72,7 +72,22 @@ export default function Alertas() {
               const cfg = TIPOS_CFG[item.tipo] || TIPOS_CFG.revertido;
               const fecha = item.fecha?.toDate?.() || new Date();
               return (
-                <div key={item.id || i} style={{ ...G.glass, background: '#fff', display: 'flex', gap: 25, padding: '24px', alignItems: 'center', borderRadius: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+                <div 
+                  key={item.id || i} 
+                  style={{ 
+                    ...G.glass, background: '#fff', display: 'flex', gap: 25, padding: '24px', 
+                    alignItems: 'center', borderRadius: 24, boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+                    transition: 'all 0.2s ease', cursor: 'default'
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.08)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.03)';
+                  }}
+                >
                   <div style={{ width: 60, height: 60, borderRadius: 18, background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, flexShrink: 0 }}>{cfg.icono}</div>
                   
                   <div style={{ flex: 1 }}>
@@ -96,7 +111,7 @@ export default function Alertas() {
  
                   <div style={{ textAlign: 'right', borderLeft: `1px solid ${C.border}`, paddingLeft: 30, flexShrink: 0, minWidth: 120 }}>
                     <div style={{ fontSize: 11, color: C.textLight, fontWeight: 800, letterSpacing: 1, marginBottom: 5 }}>TRACKING ID</div>
-                    <div style={{ fontSize: 12, fontFamily: 'monospace', color: C.textSecondary, fontWeight: 700 }}>{item.id.slice(-10).toUpperCase()}</div>
+                    <div style={{ fontSize: 12, fontFamily: 'monospace', color: C.textSecondary, fontWeight: 700 }}>{item.id?.slice(-10).toUpperCase() || 'S/N'}</div>
                   </div>
                 </div>
               );

@@ -73,7 +73,8 @@ export default function Dashboard({ navegar, perfil }) {
   const [error, setError]     = useState('');
   const [config, setConfig]   = useState({ conteoActivo: false });
   
-  const esAdmin = perfil?.rol === 'admin' || perfil?.rol === 'panol';
+  const rolActual = (perfil?.rol || '').toLowerCase();
+  const esAdmin = rolActual === 'admin' || rolActual === 'panol' || rolActual === 'administrador';
 
   async function handleSolicitudAutomatica(sug) {
     if (!window.confirm(`¿Generar solicitud de compra automática para "${sug.nombre}"?`)) return;
@@ -136,7 +137,7 @@ export default function Dashboard({ navegar, perfil }) {
       {/* ── Contenido Multi-Columna (Optimizado para Computador) ── */}
       <main style={{ padding: '20px 40px 40px', display: 'flex', flexDirection: 'column', gap: 25, width: '100%', boxSizing: 'border-box' }}>
 
-        {/* Fila Superior: Mensaje, Ranking y Conteo */}
+        {/* Fila Única: Mensaje, Ranking y Conteo (Diseño Limpio) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 25 }}>
           
           {/* 1. Mensaje del Día */}
@@ -160,12 +161,10 @@ export default function Dashboard({ navegar, perfil }) {
             </div>
           </div>
 
-          {/* 3. Conteo Total / Switch de Auditoría */}
+          {/* 3. Conteo Total / Auditoría */}
           <div 
             onClick={() => navegar('inventario')}
             style={{ ...G.glass, padding: '24px', borderRadius: 24, background: '#fff', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', cursor: 'pointer', transition: 'transform 0.2s' }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-5px)'}
-            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ fontSize: 24, color: config.conteoActivo ? C.success : '#5e5ce6' }}>📦</div>
@@ -175,77 +174,41 @@ export default function Dashboard({ navegar, perfil }) {
               </div>
             </div>
             
-            {esAdmin && (
+            {rolActual === 'administrador' && (
               <div style={{ marginTop: 15, borderTop: `1px solid ${C.border}`, paddingTop: 15, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 11, fontWeight: 800, color: C.textSecondary }}>AUDITORÍA FÍSICA</span>
+                <span style={{ fontSize: 11, fontWeight: 800, color: C.textSecondary }}>ACTIVAR AUDITORÍA</span>
                 <button 
-                  onClick={() => toggleConteo(!config.conteoActivo)}
-                  style={{ 
-                    padding: '8px 16px', 
-                    borderRadius: 10, 
-                    border: 'none', 
-                    background: config.conteoActivo ? C.success : C.border, 
-                    color: '#fff', 
-                    fontSize: 10, 
-                    fontWeight: 900, 
-                    cursor: 'pointer' 
-                  }}
+                  onClick={(e) => { e.stopPropagation(); toggleConteo(!config.conteoActivo); }}
+                  style={{ padding: '8px 16px', borderRadius: 10, border: 'none', background: config.conteoActivo ? C.success : C.border, color: '#fff', fontSize: 10, fontWeight: 900, cursor: 'pointer' }}
                 >
                   {config.conteoActivo ? 'ACTIVADO' : 'DESACTIVADO'}
                 </button>
               </div>
             )}
           </div>
-
         </div>
 
         {/* Fila Inferior: Listados Críticos */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 25 }}>
-          
-          {/* 4. Sugerencias de Compra (Tarjeta Oscura) */}
-          <div style={{ background: '#1c1c1e', padding: '30px', borderRadius: 28, color: '#fff', boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 25 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🛒</div>
-              <span style={{ fontSize: 20, fontWeight: 800, letterSpacing: -0.5 }}>Sugerencias de Compra</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {kpis?.sugerenciasCompra?.map((sug, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', background: 'rgba(255,255,255,0.05)', borderRadius: 16, transition: 'background 0.2s' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{sug.nombre}</div>
-                    <div style={{ fontSize: 12, color: '#a1a1a6', marginTop: 4 }}>Stock: {sug.stock} (Min: {sug.min})</div>
-                  </div>
-                  <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 15 }}>
-                    <div style={{ color: '#30d158', fontSize: 14, fontWeight: 800 }}>Pedir {Math.max(1, sug.min - sug.stock)}</div>
-                    <button 
-                      onClick={() => handleSolicitudAutomatica(sug)} 
-                      style={{ background: C.primary, color: '#fff', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
-                    >
-                      Solicitar
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* Fila Inferior: Más Solicitados (Diseño Centralizado) */}
+        <div style={{ ...G.glass, padding: '30px', borderRadius: 28, background: '#fff', boxShadow: '0 4px 24px rgba(0,0,0,0.04)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 25 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(244,130,31,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🏆</div>
+            <span style={{ fontSize: 20, fontWeight: 800, color: '#1d1d1f', letterSpacing: -0.5 }}>Más solicitados del mes</span>
           </div>
-
-          {/* 5. Más Solicitados */}
-          <div style={{ ...G.glass, padding: '30px', borderRadius: 28, background: '#fff', boxShadow: '0 4px 24px rgba(0,0,0,0.04)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 25 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(244,130,31,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🏆</div>
-              <span style={{ fontSize: 20, fontWeight: 800, color: '#1d1d1f', letterSpacing: -0.5 }}>Más solicitados del mes</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {kpis?.topProductosLista?.map((p, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: '#f5f5f7', borderRadius: 14 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#1d1d1f' }}>{p.nombre}</div>
-                  <div style={{ fontSize: 16, fontWeight: 900, color: C.primary }}>{p.cantidad}</div>
-                </div>
-              ))}
-            </div>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+            gap: 12 
+          }}>
+            {kpis?.topProductosLista?.map((p, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', background: '#f5f5f7', borderRadius: 14 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#1d1d1f' }}>{p.nombre}</div>
+                <div style={{ fontSize: 16, fontWeight: 900, color: C.primary }}>{p.cantidad}</div>
+              </div>
+            ))}
           </div>
-
         </div>
+
 
       </main>
     </div>

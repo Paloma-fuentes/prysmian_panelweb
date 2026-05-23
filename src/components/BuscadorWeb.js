@@ -41,6 +41,20 @@ export default function BuscadorWeb({ onSelect, placeholder = "Buscar por nombre
     return () => clearTimeout(delayDebounceFn);
   }, [query]);
 
+  function resaltarTexto(texto, query) {
+    if (!query) return texto;
+    const parts = texto.split(new RegExp(`(${query})`, 'gi'));
+    return (
+      <span>
+        {parts.map((part, i) => 
+          part.toLowerCase() === query.toLowerCase() 
+            ? <b key={i} style={{ color: C.primary, background: 'rgba(244,130,31,0.1)', padding: '0 2px', borderRadius: 4 }}>{part}</b> 
+            : part
+        )}
+      </span>
+    );
+  }
+
   return (
     <div ref={wrapperRef} style={s.container}>
       <div style={s.inputWrapper}>
@@ -56,9 +70,13 @@ export default function BuscadorWeb({ onSelect, placeholder = "Buscar por nombre
         {loading && <div style={s.spinner}></div>}
       </div>
 
-      {mostrar && resultados.length > 0 && (
+      {mostrar && (
         <div style={s.dropdown}>
-          {resultados.map((res) => (
+          {resultados.length === 0 ? (
+            <div style={{ padding: '20px', textAlign: 'center', color: C.textLight, fontSize: 13 }}>
+              No se encontraron repuestos para "<b>{query}</b>"
+            </div>
+          ) : resultados.map((res) => (
             <div
               key={res.id}
               style={s.item}
@@ -67,16 +85,16 @@ export default function BuscadorWeb({ onSelect, placeholder = "Buscar por nombre
                 setQuery('');
                 setMostrar(false);
               }}
-              onMouseEnter={(e) => e.target.style.background = '#f1f5f9'}
-              onMouseLeave={(e) => e.target.style.background = 'none'}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
             >
-              <div style={s.itemNombre}>{res.descripcion}</div>
+              <div style={s.itemNombre}>{resaltarTexto(res.descripcion, query)}</div>
               <div style={s.itemMeta}>
-                {res.codigoSAP ? <span style={s.sap}>SAP: {res.codigoSAP}</span> : null}
-                <span style={{ ...s.stock, color: res.stock > 0 ? '#10b981' : '#ef4444' }}>
+                {res.codigoSAP ? <span style={s.sap}>SAP: {resaltarTexto(res.codigoSAP, query)}</span> : null}
+                <span style={{ ...s.stock, color: res.stock > 0 ? C.success : C.error }}>
                   Stock: {res.stock}
                 </span>
-                <span style={s.ubic}>{res.ubicacion || 'Sin ubicación'}</span>
+                <span style={s.ubic}>📍 {resaltarTexto(res.ubicacion || 'Sin ubic', query)}</span>
               </div>
             </div>
           ))}
@@ -85,6 +103,7 @@ export default function BuscadorWeb({ onSelect, placeholder = "Buscar por nombre
     </div>
   );
 }
+
 
 const s = {
   container: { position: 'relative', width: '100%' },

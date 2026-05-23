@@ -7,17 +7,29 @@ import {
   onSnapshot, query, orderBy, serverTimestamp, where, writeBatch
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { notificarPanol } from './notificacionesService';
+
 
 const COL = 'solicitudes_compra';
 
 export async function crearSolicitudCompra(datos) {
-  return await addDoc(collection(db, COL), {
+  const ref = await addDoc(collection(db, COL), {
     ...datos,
     creadoEn: serverTimestamp(),
     actualizadoEn: serverTimestamp(),
     estado: 'en espera'
   });
+
+  // Notificar al Pañol vía Push
+  notificarPanol(
+    '🛒 Nueva Solicitud de Compra',
+    `${datos.usuario} solicita ${datos.cantidad}x ${datos.nombre || datos.producto} para ${datos.maquina || 'Stock'}.`,
+    { tipo: 'compra' }
+  ).catch(() => {});
+
+  return ref;
 }
+
 
 // ── Tiempo real ─────────────────────────────────────────────────────────────
 export function escucharSolicitudesCompra(callback) {
@@ -49,10 +61,19 @@ export async function eliminarSolicitudCompra(id) {
 }
 
 // ── Borrar Todo (Personal) ──────────────────────────────────────────────────
-export async function borrarTodasMisSolicitudesCompra(usuario) {
-  const q = query(collection(db, COL), where('usuario', '==', usuario));
-  const snap = await getDocs(q);
+export async function borrarTodasMisSolicitudesCompra(identificador) {
+  // Buscamos coincidencias por UID (lo más seguro) o por nombre (historial antiguo)
+  const q1 = query(collection(db, COL), where('usuarioUid', '==', identificador));
+  const q2 = query(collection(db, COL), where('solicitanteUid', '==', identificador));
+  const q3 = query(collection(db, COL), where('usuario', '==', identificador));
+
+  const [s1, s2, s3] = await Promise.all([getDocs(q1), getDocs(q2), getDocs(q3)]);
+  
   const batch = writeBatch(db);
-  snap.docs.forEach(d => batch.delete(d.ref));
+  s1.docs.forEach(d => batch.delete(d.ref));
+  s2.docs.forEach(d => batch.delete(d.ref));
+  s3.docs.forEach(d => batch.delete(d.ref));
+  
   await batch.commit();
 }
+

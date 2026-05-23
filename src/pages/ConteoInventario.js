@@ -3,13 +3,16 @@ import { C, G } from '../theme';
 import { escucharMateriales, editarMaterial } from '../services/inventarioService';
 import { escucharConfig } from '../services/configService';
 
-export default function ConteoInventario() {
+export default function ConteoInventario({ perfil }) {
   const [materiales, setMateriales] = useState([]);
   const [conteo, setConteo]           = useState({}); // { id: valor_contado }
   const [loading, setLoading]       = useState(true);
   const [busqueda, setBusqueda]     = useState('');
   const [guardando, setGuardando]   = useState(false);
   const [config, setConfig]         = useState({ conteoActivo: false });
+  
+  const rolActual = (perfil?.rol || '').toLowerCase();
+  const esAdmin = rolActual === 'admin' || rolActual === 'administrador';
 
   useEffect(() => {
     const unsubConfig = escucharConfig(setConfig);
@@ -80,13 +83,15 @@ export default function ConteoInventario() {
           <h1 style={{ fontSize: 28, fontWeight: 900, color: C.secondary, margin: 0, letterSpacing: -0.5 }}>Auditoría de Inventario</h1>
           <p style={{ fontSize: 14, color: C.textSecondary, marginTop: 4 }}>Censo físico de materiales y ajuste de stock en sistema</p>
         </div>
-        <button 
-          style={{ padding: '14px 28px', borderRadius: 14, color: '#fff', border: 'none', fontWeight: 800, cursor: Object.keys(conteo).length > 0 ? 'pointer' : 'default', background: Object.keys(conteo).length > 0 ? C.primary : '#cbd5e1', boxShadow: Object.keys(conteo).length > 0 ? '0 4px 12px rgba(244,130,31,0.3)' : 'none', transition: 'all 0.2s' }} 
-          disabled={guardando || Object.keys(conteo).length === 0} 
-          onClick={finalizarConteo}
-        >
-          {guardando ? 'Sincronizando...' : `Guardar Conteo (${Object.keys(conteo).length})`}
-        </button>
+        {esAdmin && (
+          <button 
+            style={{ padding: '14px 28px', borderRadius: 14, color: '#fff', border: 'none', fontWeight: 800, cursor: Object.keys(conteo).length > 0 ? 'pointer' : 'default', background: Object.keys(conteo).length > 0 ? C.primary : '#cbd5e1', boxShadow: Object.keys(conteo).length > 0 ? '0 4px 12px rgba(244,130,31,0.3)' : 'none', transition: 'all 0.2s' }} 
+            disabled={guardando || Object.keys(conteo).length === 0} 
+            onClick={finalizarConteo}
+          >
+            {guardando ? 'Sincronizando...' : `Guardar Conteo (${Object.keys(conteo).length})`}
+          </button>
+        )}
       </header>
 
       {/* ── Barra de Búsqueda ── */}

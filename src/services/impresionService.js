@@ -11,185 +11,298 @@ export function imprimirValeRetiro(sol) {
     return;
   }
 
-  const fecha = sol.creadoEn?.toDate ? sol.creadoEn.toDate().toLocaleString('es-CL') : new Date().toLocaleString('es-CL');
+  const fecha = sol.creadoEn?.toDate ? sol.creadoEn.toDate().toLocaleString('es-CL', { 
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' 
+  }) : new Date().toLocaleString('es-CL');
   
+  const refId = sol.id ? sol.id.substring(0, 8).toUpperCase() : 'S/R';
+
   printWindow.document.write(`
+    <!DOCTYPE html>
     <html>
       <head>
-        <title>VALE_${sol.usuario.replace(/\s+/g, '_')}_${Date.now()}</title>
+        <title>Vale de Retiro - ${refId}</title>
         <style>
+          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+          
           @page {
             size: auto;
             margin: 10mm;
           }
+          
           body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            padding: 20px; 
-            color: #1a1a2e;
-            line-height: 1.6;
+            font-family: 'Inter', -apple-system, sans-serif; 
+            margin: 0;
+            padding: 40px;
+            color: #0F172A;
+            background: #fff;
           }
-          .container {
-            max-width: 800px;
-            margin: 0 auto;
-            border: 2px solid #E0E0E0;
+
+          .voucher-container {
+            border: 2px solid #E2E8F0;
+            border-radius: 16px;
             padding: 30px;
-            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+            page-break-inside: avoid;
+            break-inside: avoid;
           }
+
+          .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 80px;
+            font-weight: 800;
+            color: rgba(15, 23, 42, 0.03);
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 0;
+          }
+
           .header { 
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            border-bottom: 3px solid #F4821F; 
-            padding-bottom: 15px; 
-            margin-bottom: 25px; 
+            align-items: flex-start;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
           }
-          .title-box h1 { 
-            color: #F4821F; 
-            font-size: 26px; 
-            font-weight: 900; 
+
+          .brand {
+            display: flex;
+            flex-direction: column;
+          }
+
+          .brand-name {
+            color: #F4821F;
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -1px;
             margin: 0;
+          }
+
+          .brand-tagline {
+            font-size: 10px;
+            font-weight: 600;
+            color: #64748B;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+          }
+
+          .document-title {
+            text-align: right;
+          }
+
+          .document-title h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 800;
+            color: #0F172A;
             text-transform: uppercase;
           }
-          .title-box p {
-            margin: 5px 0 0;
+
+          .ref-number {
             font-size: 12px;
-            font-weight: bold;
-            color: #666;
+            color: #F4821F;
+            font-weight: 700;
+            font-family: monospace;
           }
-          .info-grid {
+
+          .info-section {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 20px;
             margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
           }
-          .info-item {
-            font-size: 14px;
+
+          .field {
+            display: flex;
+            flex-direction: column;
           }
-          .label { 
-            font-weight: 800; 
-            color: #1A1A2E; 
-            display: block;
-            font-size: 10px;
-            text-transform: uppercase;
-            margin-bottom: 2px;
-          }
-          .value {
-            font-size: 16px;
-            color: #333;
-            font-weight: 500;
-          }
-          .item-card { 
-            background: #F8FAFC; 
-            padding: 25px; 
-            border-radius: 12px; 
-            border: 1px dashed #F4821F; 
-            margin: 30px 0;
-            text-align: center;
-          }
-          .item-qty {
-            font-size: 40px;
-            font-weight: 900;
-            color: #F4821F;
-            display: block;
-          }
-          .item-name {
-            font-size: 22px;
+
+          .label {
+            font-size: 9px;
             font-weight: 800;
-            color: #1A1A2E;
-            margin-top: 5px;
-            display: block;
+            color: #94A3B8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
           }
-          .item-sap {
-            font-size: 12px;
-            color: #666;
-            margin-top: 10px;
-            display: block;
+
+          .value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #1E293B;
           }
-          .signature-section { 
-            margin-top: 80px; 
-            display: flex; 
-            justify-content: space-around; 
+
+          .material-card {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 1;
           }
-          .signature-box {
-            border-top: 2px solid #1A1A2E; 
-            width: 220px; 
-            text-align: center; 
-            padding-top: 10px;
-            font-size: 12px;
-            font-weight: bold;
-          }
-          .footer { 
-            margin-top: 60px; 
-            text-align: center; 
-            font-size: 10px; 
-            color: #999;
-            border-top: 1px solid #EEE;
-            padding-top: 10px;
-          }
-          .printer-note {
-            background: #E8F5E9;
-            color: #2E7D32;
-            padding: 8px;
-            border-radius: 5px;
-            font-size: 10px;
-            font-weight: bold;
-            margin-bottom: 20px;
+
+          .qty-box {
+            background: #F4821F;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
             text-align: center;
+            min-width: 60px;
+          }
+
+          .qty-value {
+            font-size: 24px;
+            font-weight: 800;
+            display: block;
+          }
+
+          .qty-label {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+          }
+
+          .material-info {
+            flex: 1;
+          }
+
+          .material-name {
+            font-size: 18px;
+            font-weight: 800;
+            color: #0F172A;
+            margin: 0;
+          }
+
+          .material-sap {
+            font-size: 12px;
+            color: #64748B;
+            font-weight: 600;
+            margin-top: 2px;
+          }
+
+          .signatures {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            padding: 0 40px;
+            position: relative;
+            z-index: 1;
+          }
+
+          .signature-line {
+            border-top: 2px solid #E2E8F0;
+            text-align: center;
+            padding-top: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748B;
+          }
+
+          .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 9px;
+            color: #94A3B8;
+            border-top: 1px solid #F1F5F9;
+            padding-top: 15px;
+          }
+
+          @media print {
+            body { padding: 20px; }
+            .voucher-container { border: 1px solid #000; }
           }
         </style>
       </head>
       <body>
-        <div class="container">
-          <div class="printer-note">
-            ⚠️ Destino de impresión sugerido: RICOH_Pañol on srv776-01cl
+        <div class="voucher-container">
+          <div class="watermark">PRYSMIAN</div>
+          
+          <div class="header">
+            <div class="brand">
+              <span class="brand-name">PRYSMIAN</span>
+              <span class="brand-tagline">Warehouse Management System</span>
+            </div>
+            <div class="document-title">
+              <h1>Vale de Retiro</h1>
+              <span class="ref-number">REF: ${refId}</span>
+            </div>
           </div>
 
-          <div class="header">
-            <div class="title-box">
-              <h1>Vale de Retiro</h1>
-              <p>PRYSMIAN GROUP - SISTEMA DE GESTIÓN DE PAÑOL</p>
-            </div>
-            <div style="text-align: right; font-size: 11px; color: #666;">
-              Ref: ${sol.id.substring(0, 8).toUpperCase()}
-            </div>
-          </div>
-          
-          <div class="info-grid">
-            <div class="info-item">
+          <div class="info-section">
+            <div class="field">
               <span class="label">Solicitante</span>
               <span class="value">${sol.usuario}</span>
             </div>
-            <div class="info-item">
-              <span class="label">Fecha y Hora</span>
+            <div class="field">
+              <span class="label">Fecha Emisión</span>
               <span class="value">${fecha}</span>
             </div>
-            <div class="info-item">
+            <div class="field">
+              <span class="label">Centro / Planta</span>
+              <span class="value">Prysmian Santiago</span>
+            </div>
+            <div class="field">
               <span class="label">Máquina Destino</span>
               <span class="value">${sol.maquina}</span>
             </div>
-            <div class="info-item">
-              <span class="label">Ubicación / Parte</span>
+            <div class="field">
+              <span class="label">Sección / Parte</span>
               <span class="value">${sol.parteMaquina || 'General'}</span>
             </div>
+            <div class="field">
+              <span class="label">Ubicación Bodega</span>
+              <span class="value" style="color: #10B981">${sol.ubicacion || 'N/A'}</span>
+            </div>
+            <div class="field">
+              <span class="label">Estado</span>
+              <span class="value" style="color: #F4821F">AUTORIZADO</span>
+            </div>
           </div>
-          
-          <div class="item-card">
-            <span class="item-qty">${sol.cantidad} Unidades</span>
-            <span class="item-name">${sol.producto.toUpperCase()}</span>
-            <span class="item-sap">ID Material: ${sol.materialId || 'S/C'}</span>
+
+          <div class="material-card">
+            <div class="qty-box" style="background: ${sol.urgencia === 'alta' ? '#EF4444' : '#F4821F'}">
+              <span class="qty-value">${sol.cantidad}</span>
+              <span class="qty-label">${sol.unidad || 'UNIDADES'}</span>
+            </div>
+            <div class="material-info">
+              <p class="material-name">
+                ${sol.producto.toUpperCase()}
+                ${sol.urgencia === 'alta' ? '<span style="color: #EF4444; font-size: 12px; margin-left: 10px;">⚠️ URGENTE</span>' : ''}
+              </p>
+              <p class="material-sap">SAP: ${sol.productoSAP || sol.materialId || 'N/A'}</p>
+              
+              ${sol.correaDetalles ? `
+                <div style="margin-top: 8px; font-size: 11px; color: #F4821F; font-weight: 700; border-top: 1px dashed #E2E8F0; padding-top: 8px;">
+                  ⚙️ DETALLES CORREA: ${sol.correaDetalles.posicion.toUpperCase()} 
+                  ${sol.correaDetalles.numero ? `| N°: ${sol.correaDetalles.numero}` : ''}
+                </div>
+              ` : ''}
+            </div>
           </div>
-          
-          <div class="signature-section">
-            <div class="signature-box">Firma Solicitante</div>
-            <div class="signature-box">Autorización Pañol (RICOH)</div>
+
+          <div class="signatures">
+            <div class="signature-line">Firma Solicitante</div>
+            <div class="signature-line">Firma Pañol / Despacho</div>
           </div>
-          
+
           <div class="footer">
-            Este documento es un comprobante oficial de retiro de materiales. 
-            Generado digitalmente por Prysmian Mobile App.
+            Este documento es un comprobante válido para el control de inventario interno.<br>
+            Generado digitalmente por Prysmian Panel Web v2.0
           </div>
         </div>
-        
+
         <script>
           window.onload = function() {
             setTimeout(function() {
@@ -203,3 +316,4 @@ export function imprimirValeRetiro(sol) {
   `);
   printWindow.document.close();
 }
+

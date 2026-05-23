@@ -11,9 +11,12 @@ import { imprimirValeRetiro } from '../services/impresionService';
 
 const ESTADOS_STYLE = {
   pendiente_entrega: { bg: '#FEF3C7', co: '#D97706', ic: '⏳', label: 'PENDIENTE' },
+  pendiente:         { bg: '#FEF3C7', co: '#D97706', ic: '⏳', label: 'PENDIENTE' },
   entregado:         { bg: '#DCFCE7', co: '#10B981', ic: '✅', label: 'ENTREGADO' },
   cancelado:         { bg: '#F3F4F6', co: '#6B7280', ic: '🚫', label: 'CANCELADO' },
   devuelto:          { bg: '#EEF2FF', co: '#6366F1', ic: '↩️', label: 'DEVUELTO' },
+  revertido:         { bg: '#FEF9F0', co: '#F97316', ic: '↩', label: 'REVERTIDO' },
+  rechazado:         { bg: '#FEF2F2', co: '#EF4444', ic: '✕', label: 'RECHAZADO' },
 };
 
 export default function Solicitudes({ perfil }) {
@@ -31,16 +34,23 @@ export default function Solicitudes({ perfil }) {
   useEffect(() => {
     setLoading(true);
     const unsub = escucharSolicitudes(data => {
-      const filtradasPorUsuario = esAdmin ? data : data.filter(s => s.usuario === perfil?.nombre);
+      const myUid = perfil?.uid || perfil?.id;
+      // PRIVACIDAD: Solo admin y panol ven todo. El resto solo lo suyo por UID.
+      const filtradasPorUsuario = esAdmin 
+        ? data 
+        : data.filter(s => (s.solicitanteUid === myUid) || (s.usuario === perfil?.nombre));
+      
       setSolicitudes(filtradasPorUsuario);
       setLoading(false);
     });
     return unsub;
   }, [esAdmin, perfil]);
 
+
   const filtradas = solicitudes.filter(s => {
+    if (s.tipo && s.tipo !== 'retiro' && s.tipo !== 'reserva') return false;
     const cumpleEstado = filtroEstado === 'todos' || s.estado === filtroEstado;
-    const fecha = s.creadoEn?.toDate ? s.creadoEn.toDate() : new Date();
+    const fecha = s.creadoEn?.toDate ? s.creadoEn.toDate() : new Date(s.creadoEn || 0);
     const limite = new Date();
     limite.setDate(limite.getDate() - filtroTiempo);
     return cumpleEstado && (fecha >= limite);
@@ -125,27 +135,41 @@ export default function Solicitudes({ perfil }) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <div style={{ fontSize: 11, fontWeight: 800, color: C.textLight, marginBottom: 5 }}>{sol.creadoEn?.toDate ? sol.creadoEn.toDate().toLocaleString('es-CL') : '—'}</div>
-                    <div style={{ fontSize: 18, fontWeight: 900, color: C.secondary }}>{sol.cantidad}x "{sol.producto.toUpperCase()}"</div>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: C.secondary }}>
+                      {sol.cantidad}x {sol.productoSAP ? <span style={{ color: C.primary }}>[{sol.productoSAP}]</span> : ''} "{(sol.producto || sol.materialNombre || 'Sin nombre').toUpperCase()}"
+                    </div>
                   </div>
-                  <div style={{ ...s.badge, background: ESTADOS_STYLE[sol.estado]?.bg, color: ESTADOS_STYLE[sol.estado]?.co }}>{ESTADOS_STYLE[sol.estado]?.ic} {ESTADOS_STYLE[sol.estado]?.label}</div>
+
+                  {(() => {
+                    const est = ESTADOS_STYLE[sol.estado] || { bg: '#F3F4F6', co: '#6B7280', ic: '●', label: (sol.estado || 'N/A').toUpperCase() };
+                    return <div style={{ ...s.badge, background: est.bg, color: est.co }}>{est.ic} {est.label}</div>;
+                  })()}
                 </div>
 
                 <div style={{ background: '#F1F5F9', padding: '12px', borderRadius: 12, fontSize: 12 }}>
                   <div><b>📍 Máquina:</b> {sol.maquina}</div>
                   <div><b>🔧 Parte:</b> {sol.parteMaquina || 'General'}</div>
+                  {sol.correaDetalles && (
+                    <div style={{ color: C.primary, marginTop: 4, fontWeight: 700 }}>
+                      ⚙️ Correa: {sol.correaDetalles.posicion} {sol.correaDetalles.numero ? `(N° ${sol.correaDetalles.numero})` : ''}
+                    </div>
+                  )}
                   {esAdmin && <div style={{ marginTop: 4, color: C.primary }}><b>👤 Usuario:</b> {sol.usuario}</div>}
                 </div>
 
                 <div style={{ display: 'flex', gap: 10, marginTop: 'auto' }}>
                   <button onClick={() => handleImprimir(sol)} style={{ ...s.actionBtn, background: '#10B981', color: '#fff' }}>🖨️ Imprimir</button>
                   
-                  {sol.estado !== 'entregado' && (
+                  {/* Siempre editable si está PENDIENTE */}
+                  {sol.estado === 'pendiente_entrega' ? (
                     <>
                       <button onClick={() => abrirEdicion(sol)} style={{ ...s.actionBtn, background: '#F1F5F9', color: C.textSecondary }}>✏️ Editar</button>
                       <button onClick={() => handleEliminar(sol)} style={{ ...s.actionBtn, background: '#FEE2E2', color: C.error }}>🗑️ Eliminar</button>
                     </>
-                  )}
+                  ) : null}
                 </div>
+
+
               </div>
             ))}
           </div>
