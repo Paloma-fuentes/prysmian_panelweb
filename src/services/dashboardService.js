@@ -13,6 +13,11 @@ export async function getKPIs() {
   const materiales = matSnap.docs.map(d => ({ id: d.id, ...d.data() }));
   const historial   = histSnap.docs.map(d => ({ id: d.id, ...d.data() }));
   const usuarios    = userSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  const totalProductos = materiales.length;
+  const conStock  = materiales.filter(m => (m.stock ?? 0) > 0).length;
+  const sinStock  = materiales.filter(m => (m.stock ?? 0) === 0).length;
+  const bajoStock = materiales.filter(m => m.bajoStock || (m.stock > 0 && m.stock <= (m.puntoReorden || m.stockMinimo || 2))).length;
   const userMap     = Object.fromEntries(usuarios.map(u => [u.id || u.uid, u.nombre + ' ' + (u.apellido || '')]));
 
   // --- Cálculo de Gastos Reales (Basado en Compras del Mes) ---
