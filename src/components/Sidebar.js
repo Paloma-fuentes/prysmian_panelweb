@@ -11,7 +11,6 @@ const MENU = [
   { id: 'inventario',          label: 'Inventario',              icon: '📦', roles: ['panol'] },
   { id: 'panolCompras',        label: 'Gestión de Compras',      icon: '🛒', roles: ['panol'] },
   { id: 'panolRetiros',        label: 'Control de Retiros',      icon: '📤', roles: ['panol'] },
-  { id: 'ingresoRapido',       label: 'Ingreso Rápido',          icon: '📥', roles: ['panol'] },
   { id: 'mapaBodega',          label: 'Mapa de Bodega',          icon: '🗺️', roles: ['panol'] },
   { id: 'conteo',              label: 'Conteo Inventario',       icon: '📋', roles: ['panol'] },
   { id: 'historial',           label: 'Historial Movimientos',   icon: '📜', roles: ['panol'] },
@@ -32,7 +31,6 @@ const MENU = [
   { id: 'conteo',              label: 'Conteo Inventario',       icon: '📋', roles: ['mantencion'] },
 
   // ── Admin (operación) ─────────────────────────────────────────
-  { id: 'ingresoRapido',       label: 'Ingreso Rápido',          icon: '📥', roles: ['admin'] },
   { id: 'mapaBodega',          label: 'Mapa de Bodega',          icon: '🗺️', roles: ['admin'] },
   { id: 'conteo',              label: 'Conteo Inventario',       icon: '📋', roles: ['admin'] },
   { id: 'historial',           label: 'Historial Movimientos',   icon: '📜', roles: ['admin'] },
