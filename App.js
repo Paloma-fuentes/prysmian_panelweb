@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from './src/config/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { auth, db } from './src/config/firebase';
 import { getPerfilUsuario } from './src/services/authService';
 import { font, C } from './src/theme';
 
@@ -70,11 +71,19 @@ const PAGINAS = {
 
 
 export default function App() {
-  const [user, setUser]               = useState(undefined); // undefined = verificando
+  const [user, setUser]               = useState(undefined);
   const [perfil, setPerfil]           = useState(null);
   const [pagina, setPagina]           = useState('dashboard');
   const [filtroInicial, setFiltroInicial] = useState('todos');
   const [mostrarRegistro, setMostrarRegistro] = useState(false);
+  const [sesionInventario, setSesionInventario] = useState({ activa: false });
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'configuracion', 'sesionInventario'), snap => {
+      setSesionInventario(snap.exists() ? snap.data() : { activa: false });
+    });
+    return unsub;
+  }, []);
   
   const mainRef = useRef(null);
   const Pagina = PAGINAS[pagina] || Dashboard;
@@ -125,7 +134,7 @@ export default function App() {
   // Con sesión → Panel
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden', background: '#F5F5F7', fontFamily: font.family }}>
-      <Sidebar pagina={pagina} setPagina={setPagina} navegar={navegar} onLogout={() => signOut(auth)} perfil={perfil} />
+      <Sidebar pagina={pagina} setPagina={setPagina} navegar={navegar} onLogout={() => signOut(auth)} perfil={perfil} sesionInventario={sesionInventario} />
       <main 
         ref={mainRef} 
         style={{ flex: 1, minWidth: 0, overflowY: 'auto', height: '100vh', background: '#F5F5F7', position: 'relative' }}

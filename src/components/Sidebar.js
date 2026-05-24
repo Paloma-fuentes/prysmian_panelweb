@@ -46,12 +46,18 @@ const MENU = [
   { id: 'importar',            label: 'Gestión Masiva',          icon: '📁', roles: ['admin'] },
 ];
 
-export default function Sidebar({ pagina, setPagina, navegar, onLogout, perfil }) {
+export default function Sidebar({ pagina, setPagina, navegar, onLogout, perfil, sesionInventario }) {
   let rolActual = (perfil?.rol || 'mantencion').toLowerCase();
-  // Normalizar: si es 'administrador', tratar como 'admin'
   if (rolActual === 'administrador') rolActual = 'admin';
-  
-  const menuFiltrado = MENU.filter(item => item.roles.includes(rolActual));
+
+  const sesionActiva = sesionInventario?.activa === true;
+
+  const menuFiltrado = MENU.filter(item => {
+    if (!item.roles.includes(rolActual)) return false;
+    // Conteo para mantención solo visible cuando la sesión está activa
+    if (item.id === 'conteo' && rolActual === 'mantencion') return sesionActiva;
+    return true;
+  });
 
   return (
     <div style={s.sidebar}>

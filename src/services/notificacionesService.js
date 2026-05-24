@@ -46,6 +46,11 @@ export async function notificarPanol(titulo, cuerpo, datos = {}) {
   await enviarPush(tokens, titulo, cuerpo, datos);
 }
 
+export async function notificarMantencion(titulo, cuerpo, datos = {}) {
+  const tokens = await obtenerTokensDeRoles(['mantencion']);
+  await enviarPush(tokens, titulo, cuerpo, datos);
+}
+
 export async function notificarUsuario(uid, titulo, cuerpo, datos = {}) {
   const q = query(collection(db, 'usuarios'), where('uid', '==', uid));
   const snap = await getDocs(q);
