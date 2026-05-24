@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { C } from '../theme';
 import {
   escucharMateriales, buscarMateriales, getMateriales,
@@ -317,6 +319,18 @@ export default function Inventario({ filtroInicial = 'todos', perfil }) {
     setGuardandoNuevo(true);
     try {
       await crearMaterial(form);
+      // Registrar en historial
+      await addDoc(collection(db, 'historial'), {
+        tipo:      'ingreso',
+        producto:  form.descripcion.trim(),
+        cantidad:  Number(form.stock) || 0,
+        maquina:   form.maquina || 'N/A',
+        ubicacion: form.ubicacion || '',
+        usuario:   perfil?.nombre || 'Pañol',
+        ficha:     perfil?.ficha || perfil?.numeroFicha || '',
+        fecha:     serverTimestamp(),
+        estado:    'ingresado',
+      });
       setShowAdd(false);
     } catch (e) { alert('Error: ' + e.message); }
     finally { setGuardandoNuevo(false); }
