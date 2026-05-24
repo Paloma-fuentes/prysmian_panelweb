@@ -15,7 +15,7 @@ const COL = 'materiales';
 export function escucharMateriales(callback) {
   const q = query(collection(db, COL), orderBy('descripcion'));
   return onSnapshot(q, snap => {
-    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) })));
   });
 }
 

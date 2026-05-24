@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { getHistorial } from '../services/historialService';
+import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { C, G } from '../theme';
 
 const TIPO_CFG = {
@@ -15,7 +16,12 @@ export default function Historial() {
   const [busqueda, setBusqueda]   = useState('');
 
   useEffect(() => {
-    getHistorial(500).then(d => { setHistorial(d); setLoading(false); });
+    const q = query(collection(db, 'historial'), orderBy('fecha', 'desc'), limit(500));
+    const unsub = onSnapshot(q, snap => {
+      setHistorial(snap.docs.map(d => ({ id: d.id, ...d.data({ serverTimestamps: 'estimate' }) })));
+      setLoading(false);
+    });
+    return unsub;
   }, []);
 
   const TIPOS_FILTRO = ['todos', 'retiro', 'devolucion', 'ingreso'];
