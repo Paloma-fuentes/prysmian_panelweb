@@ -51,6 +51,12 @@ export default function PanolInicio({ perfil, navegar }) {
   const [compras,    setCompras]    = useState([]);
   const [historial,  setHistorial]  = useState([]);
   const [loading,    setLoading]    = useState(true);
+  const [ahora,      setAhora]      = useState(new Date());
+
+  useEffect(() => {
+    const t = setInterval(() => setAhora(new Date()), 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     let done = 0;
@@ -111,11 +117,16 @@ export default function PanolInicio({ perfil, navegar }) {
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 32px 0' }}>
 
         {/* ── Saludo ───────────────────────────────────────────────────────── */}
-        <div style={{ marginBottom: 24 }}>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: C.secondary }}>
-            Hola, {nombre} 👋
-          </h1>
-          <div style={{ fontSize: 14, color: '#64748b', marginTop: 4 }}>{fechaLabel}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: C.secondary }}>
+              Hola, {nombre} 👋
+            </h1>
+            <div style={{ fontSize: 14, color: '#64748b', marginTop: 4 }}>{fechaLabel}</div>
+          </div>
+          <div style={{ fontSize: 42, fontWeight: 900, color: C.primary, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>
+            {ahora.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+          </div>
         </div>
 
         {/* ── Mensaje del día ──────────────────────────────────────────────── */}
