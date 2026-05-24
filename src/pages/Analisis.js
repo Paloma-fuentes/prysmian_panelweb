@@ -280,25 +280,38 @@ export default function Analisis({ perfil }) {
     return Object.entries(map).sort((a, b) => b[1] - a[1]).map(([nombre, total]) => ({ nombre, total }));
   }, [historial, dias]);
 
-  // Materiales con alta rotación (para stock crítico diagnóstico)
+  // Materiales con >2 retiros en cualquier ventana de 7 días
   const altaRotacion = useMemo(() => {
-    const ahora    = Date.now();
-    const ini      = ahora - dias * 86_400_000;
-    const retMap   = {};
-    historial.filter(h => h.tipo === 'retiro').forEach(h => {
-      const t = h.fecha?.toDate ? h.fecha.toDate().getTime() : 0;
-      if (t < ini) return;
-      const p = h.producto || 'Sin nombre';
-      retMap[p] = (retMap[p] || 0) + (Number(h.cantidad) || 1);
-    });
-    return Object.entries(retMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 15)
-      .map(([nombre, usoMes]) => {
-        const mat = materiales.find(m => normStr(m.descripcion || '').includes(normStr(nombre)) || normStr(nombre).includes(normStr(m.descripcion || '')));
-        return { nombre, usoMes, stock: mat?.stock ?? '—', min: mat?.stockMinimo || 2 };
+    const porProducto = {};
+    historial
+      .filter(h => h.tipo === 'retiro')
+      .forEach(h => {
+        const t = h.fecha?.toDate ? h.fecha.toDate().getTime() : 0;
+        if (!t) return;
+        const p = h.producto || 'Sin nombre';
+        if (!porProducto[p]) porProducto[p] = [];
+        porProducto[p].push(t);
       });
-  }, [historial, materiales, dias]);
+
+    const resultado = [];
+    for (const [nombre, timestamps] of Object.entries(porProducto)) {
+      const sorted = [...timestamps].sort((a, b) => a - b);
+      let maxEnSemana = 0;
+      for (let i = 0; i < sorted.length; i++) {
+        const ventana = sorted[i] + 7 * 86_400_000;
+        const count = sorted.filter(t => t >= sorted[i] && t <= ventana).length;
+        if (count > maxEnSemana) maxEnSemana = count;
+      }
+      if (maxEnSemana > 2) {
+        const mat = materiales.find(m =>
+          normStr(m.descripcion || '').includes(normStr(nombre)) ||
+          normStr(nombre).includes(normStr(m.descripcion || ''))
+        );
+        resultado.push({ nombre, usoSemana: maxEnSemana, stock: mat?.stock ?? '—', min: mat?.puntoReorden || mat?.stockMinimo || 2 });
+      }
+    }
+    return resultado.sort((a, b) => b.usoSemana - a.usoSemana);
+  }, [historial, materiales]);
 
   // ── Helpers de render ────────────────────────────────────────────────────────
   const ESTADO_BADGE = {
@@ -517,24 +530,31 @@ export default function Analisis({ perfil }) {
 
           </div>
 
-          {/* Alta Rotación + stock disponible */}
+          {/* Alta Rotación — >2 retiros en ventana de 7 días */}
           <div style={{ marginTop: 28 }}>
-            <div style={st.seccionTitle}><span style={{ fontSize: 20 }}>🔄</span> Alta Rotación — Disponibilidad de Stock</div>
-            <div style={st.grid3}>
-              {altaRotacion.map((m, i) => {
-                const stockNum = typeof m.stock === 'number' ? m.stock : null;
-                const critico  = stockNum !== null && stockNum <= m.min;
-                return (
-                  <div key={m.nombre} style={{ ...st.matCard, borderLeft: `4px solid ${critico ? '#ef4444' : '#10b981'}` }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: C.secondary, marginBottom: 6, lineHeight: 1.4 }}>{m.nombre}</div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748b' }}>
-                      <span>Stock: <strong style={{ color: critico ? '#ef4444' : '#16a34a' }}>{m.stock === '—' ? '—' : `${m.stock} u.`}</strong></span>
-                      <span>Uso: <strong style={{ color: C.primary }}>{m.usoMes} u.</strong></span>
-                    </div>
-                  </div>
-                );
-              })}
+            <div style={st.seccionTitle}>
+              <span style={{ fontSize: 20 }}>🔄</span> Alta Rotación — Más de 2 retiros en una semana
+              <span style={{ marginLeft: 10, background: '#f1f5f9', borderRadius: 20, padding: '2px 10px', fontSize: 11, color: '#64748b', fontWeight: 700 }}>{altaRotacion.length}</span>
             </div>
+            {altaRotacion.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '32px 0', color: '#94a3b8', fontSize: 13 }}>Sin materiales con alta rotación semanal</div>
+            ) : (
+              <div style={st.grid3}>
+                {altaRotacion.map(m => {
+                  const stockNum = typeof m.stock === 'number' ? m.stock : null;
+                  const critico  = stockNum !== null && stockNum <= m.min;
+                  return (
+                    <div key={m.nombre} style={{ ...st.matCard, borderLeft: `4px solid ${critico ? '#ef4444' : '#10b981'}` }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: C.secondary, marginBottom: 6, lineHeight: 1.4 }}>{m.nombre}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748b' }}>
+                        <span>Stock: <strong style={{ color: critico ? '#ef4444' : '#16a34a' }}>{m.stock === '—' ? '—' : `${m.stock} u.`}</strong></span>
+                        <span>Uso: <strong style={{ color: C.primary }}>{m.usoSemana} u./sem</strong></span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
