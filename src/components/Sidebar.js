@@ -12,12 +12,8 @@ const MENU = [
   { id: 'panolCompras',        label: 'Gestión de Compras',      icon: '🛒', roles: ['panol'] },
   { id: 'panolRetiros',        label: 'Control de Retiros',      icon: '📤', roles: ['panol'] },
   { id: 'mapaBodega',          label: 'Mapa de Bodega',          icon: '🗺️', roles: ['panol'] },
-  { id: 'conteo',              label: 'Conteo Inventario',       icon: '📋', roles: ['panol'] },
   { id: 'historial',           label: 'Historial Movimientos',   icon: '📜', roles: ['panol'] },
   { id: 'analisis',            label: 'Análisis del Mes',        icon: '📈', roles: ['panol'] },
-  { id: 'guiaCorreas',         label: 'Guía de Correas',         icon: '⛓️', roles: ['panol'] },
-  { id: 'guiaEscobillas',      label: 'Guía de Escobillas',      icon: '⚡', roles: ['panol'] },
-  { id: 'gestionActivos',      label: 'Activos y Herramientas',  icon: '🧰', roles: ['panol'] },
   { id: 'perfil',              label: 'Mi Perfil',               icon: '👤', roles: ['panol'] },
 
   // ── Mantencion / Planta / Externos ───────────────────────────
