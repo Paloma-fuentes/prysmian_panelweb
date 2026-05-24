@@ -319,8 +319,9 @@ export default function Inventario({ filtroInicial = 'todos', perfil }) {
     setGuardandoNuevo(true);
     try {
       await crearMaterial(form);
-      // Registrar en historial
-      await addDoc(collection(db, 'historial'), {
+      setShowAdd(false);
+      // Registrar en historial (no bloquea el cierre del formulario)
+      addDoc(collection(db, 'historial'), {
         tipo:      'ingreso',
         producto:  form.descripcion.trim(),
         cantidad:  Number(form.stock) || 0,
@@ -330,9 +331,8 @@ export default function Inventario({ filtroInicial = 'todos', perfil }) {
         ficha:     perfil?.ficha || perfil?.numeroFicha || '',
         fecha:     serverTimestamp(),
         estado:    'ingresado',
-      });
-      setShowAdd(false);
-    } catch (e) { alert('Error: ' + e.message); }
+      }).catch(e => console.error('Error registrando ingreso en historial:', e));
+    } catch (e) { alert('Error al guardar: ' + e.message); }
     finally { setGuardandoNuevo(false); }
   }
 
