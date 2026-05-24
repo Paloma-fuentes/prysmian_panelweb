@@ -1,39 +1,49 @@
 import { C, G } from '../theme';
 
 const MENU = [
-  // ── Todos los roles ──────────────────────────────────────────
-  { id: 'dashboard',           label: 'Inicio',                  icon: '🏠', roles: ['admin', 'panol', 'mantencion', 'planta', 'externos'] },
-  { id: 'inventario',          label: 'Inventario',              icon: '📦', roles: ['admin', 'panol', 'mantencion', 'planta', 'externos'] },
-  { id: 'analisisMateriales',  label: 'Análisis del Mes',        icon: '📈', roles: ['admin', 'panol', 'mantencion', 'planta', 'externos'] },
+  // ── Admin ────────────────────────────────────────────────────
+  { id: 'dashboard',           label: 'Inicio',                  icon: '🏠', roles: ['admin'] },
+  { id: 'inventario',          label: 'Inventario',              icon: '📦', roles: ['admin', 'mantencion', 'planta', 'externos'] },
+  { id: 'analisisMateriales',  label: 'Análisis del Mes',        icon: '📈', roles: ['admin', 'mantencion', 'planta', 'externos'] },
+
+  // ── Pañol — menú propio ───────────────────────────────────────
+  { id: 'panolInicio',         label: 'Inicio',                  icon: '🏠', roles: ['panol'] },
+  { id: 'inventario',          label: 'Inventario',              icon: '📦', roles: ['panol'] },
+  { id: 'panolCompras',        label: 'Gestión de Compras',      icon: '🛒', roles: ['panol'] },
+  { id: 'panolRetiros',        label: 'Control de Retiros',      icon: '📤', roles: ['panol'] },
+  { id: 'ingresoRapido',       label: 'Ingreso Rápido',          icon: '📥', roles: ['panol'] },
+  { id: 'mapaBodega',          label: 'Mapa de Bodega',          icon: '🗺️', roles: ['panol'] },
+  { id: 'conteo',              label: 'Conteo Inventario',       icon: '📋', roles: ['panol'] },
+  { id: 'historial',           label: 'Historial Movimientos',   icon: '📜', roles: ['panol'] },
+  { id: 'analisis',            label: 'Análisis del Mes',        icon: '📈', roles: ['panol'] },
+  { id: 'guiaCorreas',         label: 'Guía de Correas',         icon: '⛓️', roles: ['panol'] },
+  { id: 'guiaEscobillas',      label: 'Guía de Escobillas',      icon: '⚡', roles: ['panol'] },
+  { id: 'gestionActivos',      label: 'Activos y Herramientas',  icon: '🧰', roles: ['panol'] },
+  { id: 'perfil',              label: 'Mi Perfil',               icon: '👤', roles: ['panol'] },
 
   // ── Mantencion / Planta / Externos ───────────────────────────
   { id: 'retiroDirecto',       label: 'Retiro',                  icon: '📤', roles: ['mantencion', 'planta', 'externos'] },
   { id: 'reservaMaterial',     label: 'Reserva Urgente',         icon: '🔴', roles: ['mantencion', 'planta', 'externos'] },
   { id: 'solicitudes',         label: 'Mis Retiros',             icon: '📋', roles: ['mantencion', 'planta', 'externos'] },
   { id: 'miConsumo',           label: 'Mi Consumo',              icon: '📊', roles: ['planta', 'externos'] },
-  { id: 'solicitudMateriales',  label: 'Reportar Faltante',       icon: '🚨', roles: ['mantencion', 'planta', 'externos'] },
+  { id: 'solicitudMateriales', label: 'Reportar Faltante',       icon: '🚨', roles: ['mantencion', 'planta', 'externos'] },
   { id: 'crearCompra',         label: 'Solicitar Compra',        icon: '🛒', roles: ['mantencion', 'planta', 'externos'] },
   { id: 'solicitudesCompra',   label: 'Mis Compras',             icon: '📋', roles: ['mantencion', 'planta', 'externos'] },
+  { id: 'conteo',              label: 'Conteo Inventario',       icon: '📋', roles: ['mantencion'] },
 
-  // ── Pañol / Admin (operación) ─────────────────────────────────
-  { id: 'ingresoRapido',       label: 'Ingreso Rápido',          icon: '📥', roles: ['admin', 'panol'] },
-  { id: 'mapaBodega',          label: 'Mapa de Bodega',          icon: '🗺️', roles: ['admin', 'panol'] },
-  { id: 'conteo',              label: 'Conteo Inventario',       icon: '📋', roles: ['admin', 'panol', 'mantencion'] },
-  { id: 'historial',           label: 'Historial Movimientos',   icon: '📜', roles: ['admin', 'panol'] },
-
-  // ── Guías técnicas ────────────────────────────────────────────
-  { id: 'guiaCorreas',         label: 'Guía de Correas',         icon: '⛓️', roles: ['admin', 'panol', 'mantencion'] },
-  { id: 'guiaEscobillas',      label: 'Guía de Escobillas',      icon: '⚡', roles: ['admin', 'panol', 'mantencion'] },
-
-  // ── Análisis ──────────────────────────────────────────────────
-  { id: 'analisis',            label: 'Dashboard Máquinas',      icon: '📊', roles: ['admin', 'panol', 'mantencion'] },
-  { id: 'analisisConsumo',     label: 'Análisis de Consumo',     icon: '🔬', roles: ['admin', 'panol'] },
-
-  // ── Administración ────────────────────────────────────────────
-  { id: 'adminEstrategico',    label: 'Inteligencia Jefatura',   icon: '🧠', roles: ['admin', 'panol'] },
-  { id: 'gestionActivos',      label: 'Activos y Herramientas',  icon: '🧰', roles: ['admin', 'panol'] },
-  { id: 'analisisProveedores', label: 'Análisis de Compras',     icon: '🛒', roles: ['admin', 'panol'] },
-  { id: 'importar',            label: 'Gestión Masiva',          icon: '📁', roles: ['panol'] },
+  // ── Admin (operación) ─────────────────────────────────────────
+  { id: 'ingresoRapido',       label: 'Ingreso Rápido',          icon: '📥', roles: ['admin'] },
+  { id: 'mapaBodega',          label: 'Mapa de Bodega',          icon: '🗺️', roles: ['admin'] },
+  { id: 'conteo',              label: 'Conteo Inventario',       icon: '📋', roles: ['admin'] },
+  { id: 'historial',           label: 'Historial Movimientos',   icon: '📜', roles: ['admin'] },
+  { id: 'guiaCorreas',         label: 'Guía de Correas',         icon: '⛓️', roles: ['admin', 'mantencion'] },
+  { id: 'guiaEscobillas',      label: 'Guía de Escobillas',      icon: '⚡', roles: ['admin', 'mantencion'] },
+  { id: 'analisis',            label: 'Dashboard Máquinas',      icon: '📊', roles: ['admin', 'mantencion'] },
+  { id: 'analisisConsumo',     label: 'Análisis de Consumo',     icon: '🔬', roles: ['admin'] },
+  { id: 'adminEstrategico',    label: 'Inteligencia Jefatura',   icon: '🧠', roles: ['admin'] },
+  { id: 'gestionActivos',      label: 'Activos y Herramientas',  icon: '🧰', roles: ['admin'] },
+  { id: 'analisisProveedores', label: 'Análisis de Compras',     icon: '🛒', roles: ['admin'] },
+  { id: 'importar',            label: 'Gestión Masiva',          icon: '📁', roles: ['admin'] },
 ];
 
 export default function Sidebar({ pagina, setPagina, navegar, onLogout, perfil }) {

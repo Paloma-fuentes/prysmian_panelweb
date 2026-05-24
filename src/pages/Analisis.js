@@ -4,13 +4,15 @@ import { db } from '../config/firebase';
 import { C } from '../theme';
 
 const PERIODOS = [
-  { d: 7,  label: '7 días' },
+  { d: 7,  label: '7 días'  },
+  { d: 15, label: '15 días' },
   { d: 30, label: '30 días' },
   { d: 90, label: '90 días' },
 ];
 
 const TABS = [
   { id: 'maquinas',    label: 'Máquinas',            icon: '🔧' },
+  { id: 'diagnostico', label: 'Diagnóstico',          icon: '🩺' },
   { id: 'stock',       label: 'Stock Crítico',        icon: '⚠️' },
   { id: 'proveedores', label: 'Proveedores',          icon: '🏭' },
   { id: 'compras',     label: 'Compras / SAP',        icon: '🛒' },
@@ -32,6 +34,7 @@ export default function Analisis({ perfil }) {
   const [filtroCompra, setFiltroCompra] = useState('todas');
   const [sapModal,     setSapModal]     = useState(false);
   const [sapCopiado,   setSapCopiado]   = useState(false);
+  const [diagMaqSel,   setDiagMaqSel]   = useState(null);
 
   const esAdmin = ['admin', 'administrador', 'panol'].includes((perfil?.rol || '').toLowerCase());
 
@@ -232,6 +235,71 @@ export default function Analisis({ perfil }) {
     return { semanas, materiales, movimientos: filtrados };
   }, [maquinaSel, historial, busqModal, esAdmin, perfil]);
 
+  // ── Diagnóstico de fallas recurrentes ──────────────────────────────────────
+  const diagnostico = useMemo(() => {
+    const maqMap = {};
+    historial.filter(h => h.tipo === 'retiro' && h.maquina && h.maquina !== 'N/A').forEach(h => {
+      const maq  = h.maquina.trim();
+      const prod = h.producto || 'Sin nombre';
+      const f    = h.fecha?.toDate ? h.fecha.toDate() : null;
+      if (!f) return;
+      if (!maqMap[maq]) maqMap[maq] = {};
+      if (!maqMap[maq][prod]) maqMap[maq][prod] = [];
+      maqMap[maq][prod].push(f.getTime());
+    });
+    const fallas = [];
+    Object.entries(maqMap).forEach(([maq, prods]) => {
+      Object.entries(prods).forEach(([prod, fechas]) => {
+        const sorted = [...fechas].sort((a, b) => a - b);
+        let maxEnVentana = 0;
+        for (let i = 0; i < sorted.length; i++) {
+          const fin   = sorted[i] + 7 * 86_400_000;
+          const count = sorted.filter(t => t >= sorted[i] && t <= fin).length;
+          if (count > maxEnVentana) maxEnVentana = count;
+        }
+        if (maxEnVentana > 2) fallas.push({ maquina: maq, producto: prod, frecuencia: maxEnVentana, total: fechas.length });
+      });
+    });
+    return fallas.sort((a, b) => b.frecuencia - a.frecuencia);
+  }, [historial]);
+
+  const panosPorTrabajador = useMemo(() => {
+    const ahora = Date.now();
+    const ini   = ahora - dias * 86_400_000;
+    const map   = {};
+    historial.filter(h => {
+      if (h.tipo !== 'retiro') return false;
+      const t = h.fecha?.toDate ? h.fecha.toDate().getTime() : 0;
+      if (t < ini) return false;
+      const n = normStr(h.producto || '');
+      return n.includes('pano') || n.includes('guaipe') || n.includes('trapo') || n.includes('tela');
+    }).forEach(h => {
+      const u = (h.usuario || 'Anónimo').trim();
+      map[u] = (map[u] || 0) + (Number(h.cantidad) || 1);
+    });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]).map(([nombre, total]) => ({ nombre, total }));
+  }, [historial, dias]);
+
+  // Materiales con alta rotación (para stock crítico diagnóstico)
+  const altaRotacion = useMemo(() => {
+    const ahora    = Date.now();
+    const ini      = ahora - dias * 86_400_000;
+    const retMap   = {};
+    historial.filter(h => h.tipo === 'retiro').forEach(h => {
+      const t = h.fecha?.toDate ? h.fecha.toDate().getTime() : 0;
+      if (t < ini) return;
+      const p = h.producto || 'Sin nombre';
+      retMap[p] = (retMap[p] || 0) + (Number(h.cantidad) || 1);
+    });
+    return Object.entries(retMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 15)
+      .map(([nombre, usoMes]) => {
+        const mat = materiales.find(m => normStr(m.descripcion || '').includes(normStr(nombre)) || normStr(nombre).includes(normStr(m.descripcion || '')));
+        return { nombre, usoMes, stock: mat?.stock ?? '—', min: mat?.stockMinimo || 2 };
+      });
+  }, [historial, materiales, dias]);
+
   // ── Helpers de render ────────────────────────────────────────────────────────
   const ESTADO_BADGE = {
     'en espera':  { bg: '#fef3c7', co: '#d97706', lbl: 'EN ESPERA' },
@@ -337,6 +405,137 @@ export default function Analisis({ perfil }) {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          Tab: Diagnóstico
+      ══════════════════════════════════════════════════════════════════════ */}
+      {tab === 'diagnostico' && (
+        <div style={st.content}>
+          {/* KPIs diagnóstico */}
+          <div style={st.kpiRow}>
+            {[
+              { lbl: 'Fallas Recurrentes', val: diagnostico.length,              color: '#dc2626' },
+              { lbl: 'Máquinas Afectadas', val: new Set(diagnostico.map(d => d.maquina)).size, color: '#d97706' },
+              { lbl: 'Paños en período',   val: panosPorTrabajador.reduce((s, p) => s + p.total, 0), color: '#6366f1' },
+            ].map(k => (
+              <div key={k.lbl} style={{ ...st.kpiCard, borderLeftColor: k.color }}>
+                <div style={st.kpiLbl}>{k.lbl.toUpperCase()}</div>
+                <div style={{ fontSize: 30, fontWeight: 900, color: k.color }}>{k.val}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 }}>
+
+            {/* Fallas recurrentes */}
+            <div>
+              <div style={st.seccionTitle}><span style={{ fontSize: 20 }}>🩺</span> Fallas Recurrentes</div>
+              <p style={{ fontSize: 12, color: '#64748b', marginTop: 0, marginBottom: 14 }}>
+                Materiales retirados de la misma máquina más de 2 veces en una semana.
+              </p>
+              {diagnostico.length === 0 ? (
+                <div style={st.empty}><div style={{ fontSize: 32 }}>✅</div><div>Sin fallas recurrentes detectadas.</div></div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {diagnostico.slice(0, 15).map((d, i) => (
+                    <div key={i}
+                      onClick={() => setDiagMaqSel(diagMaqSel?.maquina === d.maquina ? null : d)}
+                      style={{ background: diagMaqSel?.maquina === d.maquina ? '#fef3c7' : '#fff', borderRadius: 12, padding: '12px 16px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', cursor: 'pointer', border: `1.5px solid ${diagMaqSel?.maquina === d.maquina ? '#d97706' : 'transparent'}` }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: C.secondary }}>{d.maquina}</div>
+                          <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{d.producto}</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 18, fontWeight: 900, color: '#dc2626' }}>{d.frecuencia}×</div>
+                          <div style={{ fontSize: 10, color: '#94a3b8' }}>en 7 días</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Detalle al seleccionar máquina */}
+              {diagMaqSel && (
+                <div style={{ marginTop: 16, background: '#fff7ed', borderRadius: 12, padding: '14px 16px' }}>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: '#d97706', marginBottom: 10 }}>
+                    MATERIALES CRÍTICOS — {diagMaqSel.maquina}
+                  </div>
+                  {Object.entries(
+                    historial
+                      .filter(h => h.tipo === 'retiro' && h.maquina?.trim() === diagMaqSel.maquina)
+                      .reduce((acc, h) => {
+                        const p = h.producto || 'Sin nombre';
+                        acc[p] = (acc[p] || 0) + (Number(h.cantidad) || 1);
+                        return acc;
+                      }, {})
+                  ).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([prod, cant], i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #fed7aa', fontSize: 12 }}>
+                      <span style={{ color: C.secondary, fontWeight: 600 }}>{prod}</span>
+                      <span style={{ fontWeight: 800, color: '#d97706' }}>{cant} u.</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Paños por trabajador */}
+            <div>
+              <div style={st.seccionTitle}><span style={{ fontSize: 20 }}>🧻</span> Paños por Trabajador — {dias} días</div>
+              <p style={{ fontSize: 12, color: '#64748b', marginTop: 0, marginBottom: 14 }}>
+                Consumo de paños, guaipes y trapos por solicitante en el período.
+              </p>
+              {panosPorTrabajador.length === 0 ? (
+                <div style={st.empty}><div style={{ fontSize: 32 }}>🧻</div><div>Sin consumo de paños registrado.</div></div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {panosPorTrabajador.map((p, i) => {
+                    const maxP  = panosPorTrabajador[0].total;
+                    const pct   = Math.max(4, Math.round((p.total / maxP) * 100));
+                    const barCo = i === 0 ? '#dc2626' : i <= 2 ? '#f97316' : '#94a3b8';
+                    return (
+                      <div key={p.nombre} style={{ background: '#fff', borderRadius: 12, padding: '12px 16px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ width: 22, height: 22, borderRadius: 6, background: i < 3 ? barCo : '#e2e8f0', color: i < 3 ? '#fff' : C.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900 }}>{i + 1}</div>
+                            <span style={{ fontSize: 13, fontWeight: 800, color: C.secondary }}>{p.nombre}</span>
+                          </div>
+                          <span style={{ fontSize: 14, fontWeight: 900, color: barCo }}>{p.total} u.</span>
+                        </div>
+                        <div style={{ height: 6, background: '#f1f5f9', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${pct}%`, background: barCo, borderRadius: 3, transition: 'width 0.5s' }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+          </div>
+
+          {/* Alta Rotación + stock disponible */}
+          <div style={{ marginTop: 28 }}>
+            <div style={st.seccionTitle}><span style={{ fontSize: 20 }}>🔄</span> Alta Rotación — Disponibilidad de Stock</div>
+            <div style={st.grid3}>
+              {altaRotacion.map((m, i) => {
+                const stockNum = typeof m.stock === 'number' ? m.stock : null;
+                const critico  = stockNum !== null && stockNum <= m.min;
+                return (
+                  <div key={m.nombre} style={{ ...st.matCard, borderLeft: `4px solid ${critico ? '#ef4444' : '#10b981'}` }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: C.secondary, marginBottom: 6, lineHeight: 1.4 }}>{m.nombre}</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#64748b' }}>
+                      <span>Stock: <strong style={{ color: critico ? '#ef4444' : '#16a34a' }}>{m.stock === '—' ? '—' : `${m.stock} u.`}</strong></span>
+                      <span>Uso: <strong style={{ color: C.primary }}>{m.usoMes} u.</strong></span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
 

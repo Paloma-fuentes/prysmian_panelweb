@@ -1,6 +1,24 @@
 import { useEffect, useState } from 'react';
 import { C, G } from '../theme';
-import { escucharMateriales, buscarMateriales, getMateriales } from '../services/inventarioService';
+import { escucharMateriales, buscarMateriales, getMateriales, editarMaterial, eliminarMaterial } from '../services/inventarioService';
+
+function exportarExcel(lista) {
+  const header = 'DESCRIPCIÓN;CÓDIGO SAP;CATEGORÍA;UBICACIÓN;STOCK;PUNTO REORDEN;ESTADO';
+  const rows = lista.map(m => [
+    (m.descripcion || '').replace(/;/g, ','),
+    m.codigoSAP || '',
+    m.categoria || '',
+    (m.ubicacion || '').replace(/;/g, ','),
+    m.stock || 0,
+    m.puntoReorden || 0,
+    (m.stock || 0) === 0 ? 'AGOTADO' : (m.stock || 0) <= (m.puntoReorden || 0) ? 'BAJO' : 'DISPONIBLE',
+  ].join(';'));
+  const blob = new Blob(['﻿' + [header, ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement('a'), { href: url, download: `inventario_${new Date().toISOString().slice(0, 10)}.csv` });
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function Inventario({ filtroInicial = 'todos', perfil }) {
   const [materiales, setMateriales] = useState([]);
@@ -85,7 +103,14 @@ export default function Inventario({ filtroInicial = 'todos', perfil }) {
           <h1 style={s.titulo}>Catálogo de Inventario</h1>
           <p style={s.tituloSub}>Consulta de stock y ubicaciones en tiempo real</p>
         </div>
-        <div style={s.countBadge}>{materiales.length} artículos registrados</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={s.countBadge}>{materiales.length} artículos registrados</div>
+          {esAdmin && (
+            <button onClick={() => exportarExcel(materiales)} style={{ padding: '8px 18px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+              ⬇ Excel
+            </button>
+          )}
+        </div>
       </header>
 
       {/* ── Barra de Herramientas simplificada ── */}
@@ -126,7 +151,7 @@ export default function Inventario({ filtroInicial = 'todos', perfil }) {
             <table style={s.table}>
               <thead>
                 <tr>
-                  {['DESCRIPCIÓN', 'CATEGORÍA', 'UBICACIÓN', 'STOCK', 'PUNTO REORDEN', 'SAP', 'ESTADO'].map(h => (
+                  {['DESCRIPCIÓN', 'CATEGORÍA', 'UBICACIÓN', 'STOCK', 'PUNTO REORDEN', 'SAP', 'ESTADO', ...(esAdmin ? ['ACCIONES'] : [])].map(h => (
                     <th key={h} style={s.th}>{h}</th>
                   ))}
                 </tr>
@@ -151,6 +176,12 @@ export default function Inventario({ filtroInicial = 'todos', perfil }) {
                         : (m.stock||0) <= (m.puntoReorden||0) ? <span style={s.badgeWarning}>BAJO</span>
                         : <span style={s.badgeSuccess}>DISP.</span>}
                     </td>
+                    {esAdmin && (
+                      <td style={{ ...s.td, whiteSpace: 'nowrap' }}>
+                        <button onClick={() => setEditando({ ...m })} style={s.editBtn} title="Editar">✏️</button>
+                        <button onClick={async () => { if (window.confirm(`¿Eliminar "${m.descripcion}"?`)) { try { await eliminarMaterial(m.id); } catch(e) { alert(e.message); } } }} style={s.editBtn} title="Eliminar">🗑️</button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
