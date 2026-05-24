@@ -29,7 +29,6 @@ import MapaBodega          from './src/pages/MapaBodega';
 import AnalisisConsumo     from './src/pages/AnalisisConsumo';
 import AnalisisMateriales  from './src/pages/AnalisisMateriales';
 import ReservaMaterial     from './src/pages/ReservaMaterial';
-import IngresoRapido       from './src/pages/IngresoRapido';
 import Historial           from './src/pages/Historial';
 import SolicitudMateriales from './src/pages/SolicitudMateriales';
 import PanolInicio  from './src/pages/PanolInicio';
@@ -60,7 +59,6 @@ const PAGINAS = {
   analisisConsumo:     AnalisisConsumo,
   analisisMateriales:  AnalisisMateriales,
   reservaMaterial:     ReservaMaterial,
-  ingresoRapido:       IngresoRapido,
   historial:           Historial,
   solicitudMateriales: SolicitudMateriales,
   panolInicio:         PanolInicio,
