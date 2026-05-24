@@ -47,16 +47,14 @@ function exportCSV(lista, nombre) {
   URL.revokeObjectURL(url);
 }
 
-function esMaquinaConNumero(maq) {
-  return maq && maq !== 'N/A' && /\d/.test(maq);
-}
 
-export default function PanolCompras({ perfil }) {
+export default function PanolCompras({ perfil, filtroInicial }) {
   const [compras,      setCompras]      = useState([]);
   const [usuarios,     setUsuarios]     = useState({});
   const [loading,      setLoading]      = useState(true);
   const [tab,          setTab]          = useState('nuevas');
   const [filtroTiempo, setFiltroTiempo] = useState('7d');
+  const [soloUrgentes, setSoloUrgentes] = useState(filtroInicial === 'urgentes');
   const [editando,     setEditando]     = useState(null);
   const [guardando,    setGuardando]    = useState(false);
 
@@ -82,27 +80,39 @@ export default function PanolCompras({ perfil }) {
 
   const ahora = Date.now();
 
-  // Filtro por tiempo
+  // Filtro por tiempo + urgentes
   const comprasFiltradas = useMemo(() => {
+    if (soloUrgentes) return compras.filter(c => c.urgencia === 'urgencia');
     const cfg = FILTROS_TIEMPO.find(f => f.id === filtroTiempo);
     const cutoff = cfg?.ms === Infinity ? 0 : ahora - cfg.ms;
     return compras.filter(c => {
       const f = c.creadoEn?.toDate ? c.creadoEn.toDate().getTime() : 0;
       return f >= cutoff;
     });
-  }, [compras, filtroTiempo, ahora]);
+  }, [compras, filtroTiempo, ahora, soloUrgentes]);
 
-  // Por Máquinas — separar con/sin número + KPIs
+  // Por Máquinas — agrupar por nombre de máquina + KPIs
   const porMaquinasData = useMemo(() => {
-    const conNum = compras.filter(c => esMaquinaConNumero(c.maquina));
-    const sinMaq = compras.filter(c => !c.maquina || c.maquina === 'N/A');
     const enEspera   = compras.filter(c => c.estado === 'en espera').length;
     const enRevision = compras.filter(c => c.estado === 'en revision').length;
     const ult72h     = compras.filter(c => {
       const f = c.creadoEn?.toDate ? c.creadoEn.toDate().getTime() : 0;
       return ahora - f <= 259_200_000;
     }).length;
-    return { conNum, sinMaq, enEspera, enRevision, ult72h };
+    const map = {};
+    compras.forEach(c => {
+      const maq = (c.maquina && c.maquina.trim() && c.maquina !== 'N/A') ? c.maquina.trim() : 'Sin Máquina';
+      if (!map[maq]) map[maq] = [];
+      map[maq].push(c);
+    });
+    const grupos = Object.entries(map)
+      .map(([maquina, solicitudes]) => ({ maquina, solicitudes }))
+      .sort((a, b) => {
+        if (a.maquina === 'Sin Máquina') return 1;
+        if (b.maquina === 'Sin Máquina') return -1;
+        return a.maquina.localeCompare(b.maquina, 'es');
+      });
+    return { grupos, enEspera, enRevision, ult72h };
   }, [compras, ahora]);
 
   async function cambiarEstado(id, estado) {
@@ -143,7 +153,13 @@ export default function PanolCompras({ perfil }) {
           <h1 style={s.titulo}>Gestión de Compras</h1>
           <p style={s.sub}>Control de solicitudes · {compras.length} en total</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
+            onClick={() => setSoloUrgentes(v => !v)}
+            style={{ ...s.excelBtn, background: soloUrgentes ? '#dc2626' : '#fff', color: soloUrgentes ? '#fff' : '#dc2626', border: '1.5px solid #dc2626' }}
+          >
+            🚨 {soloUrgentes ? `Urgentes (${comprasFiltradas.length})` : 'Urgentes'}
+          </button>
           <button onClick={() => exportCSV(tab === 'nuevas' ? comprasFiltradas : compras, 'compras')} style={s.excelBtn}>⬇ Excel</button>
         </div>
       </header>
@@ -202,25 +218,24 @@ export default function PanolCompras({ perfil }) {
             ))}
           </div>
 
-          {/* Con número de máquina */}
-          {porMaquinasData.conNum.length > 0 && (
-            <div style={{ marginBottom: 28 }}>
-              <div style={s.secTitle}>🔧 Con Número de Máquina ({porMaquinasData.conNum.length})</div>
+          {/* Grupos por máquina */}
+          {porMaquinasData.grupos.length === 0 ? (
+            <div style={s.empty}><div style={{ fontSize: 40 }}>🔧</div><div>No hay solicitudes registradas.</div></div>
+          ) : porMaquinasData.grupos.map(grupo => (
+            <div key={grupo.maquina} style={{ marginBottom: 28 }}>
+              <div style={{ ...s.secTitle, display: 'flex', alignItems: 'center', gap: 8 }}>
+                {grupo.maquina === 'Sin Máquina' ? '📦' : '🔧'} {grupo.maquina}
+                <span style={{ background: '#f1f5f9', borderRadius: 20, padding: '2px 10px', fontSize: 11, color: '#64748b', fontWeight: 700 }}>
+                  {grupo.solicitudes.length}
+                </span>
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {porMaquinasData.conNum.map((c, i) => <SolicitudCard key={c.id} c={c} idx={i} total={porMaquinasData.conNum.length} ahora={ahora} getFicha={getFicha} cambiarEstado={cambiarEstado} eliminar={eliminar} setEditando={setEditando} numSolicitud={numSolicitud} />)}
+                {grupo.solicitudes.map((c, i) => (
+                  <SolicitudCard key={c.id} c={c} idx={i} total={grupo.solicitudes.length} ahora={ahora} getFicha={getFicha} cambiarEstado={cambiarEstado} eliminar={eliminar} setEditando={setEditando} numSolicitud={numSolicitud} />
+                ))}
               </div>
             </div>
-          )}
-
-          {/* Sin máquina */}
-          {porMaquinasData.sinMaq.length > 0 && (
-            <div>
-              <div style={s.secTitle}>📦 Sin Máquina / Stock General ({porMaquinasData.sinMaq.length})</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {porMaquinasData.sinMaq.map((c, i) => <SolicitudCard key={c.id} c={c} idx={i} total={porMaquinasData.sinMaq.length} ahora={ahora} getFicha={getFicha} cambiarEstado={cambiarEstado} eliminar={eliminar} setEditando={setEditando} numSolicitud={numSolicitud} />)}
-              </div>
-            </div>
-          )}
+          ))}
         </div>
       )}
 
