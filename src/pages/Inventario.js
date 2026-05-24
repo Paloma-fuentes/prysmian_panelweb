@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, writeBatch, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { C } from '../theme';
 import {
@@ -318,20 +318,22 @@ export default function Inventario({ filtroInicial = 'todos', perfil }) {
     if (!form.descripcion.trim()) return;
     setGuardandoNuevo(true);
     try {
-      await crearMaterial(form);
+      const matRef = await crearMaterial(form);
+      const batch  = writeBatch(db);
+      batch.set(doc(collection(db, 'historial')), {
+        tipo:        'ingreso',
+        solicitudId: '',
+        materialId:  matRef.id,
+        producto:    form.descripcion.trim(),
+        cantidad:    Number(form.stock) || 0,
+        maquina:     form.maquina      || 'N/A',
+        parteMaquina:'',
+        usuario:     perfil?.nombre    || 'Pañol',
+        estado:      'ingresado',
+        fecha:       serverTimestamp(),
+      });
+      await batch.commit();
       setShowAdd(false);
-      // Registrar en historial (no bloquea el cierre del formulario)
-      addDoc(collection(db, 'historial'), {
-        tipo:      'ingreso',
-        producto:  form.descripcion.trim(),
-        cantidad:  Number(form.stock) || 0,
-        maquina:   form.maquina || 'N/A',
-        ubicacion: form.ubicacion || '',
-        usuario:   perfil?.nombre || 'Pañol',
-        ficha:     perfil?.ficha || perfil?.numeroFicha || '',
-        fecha:     serverTimestamp(),
-        estado:    'ingresado',
-      }).catch(e => console.error('Error registrando ingreso en historial:', e));
     } catch (e) { alert('Error al guardar: ' + e.message); }
     finally { setGuardandoNuevo(false); }
   }
