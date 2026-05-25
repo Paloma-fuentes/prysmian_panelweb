@@ -26,12 +26,13 @@ export default function Analisis({ perfil }) {
   const [historial,    setHistorial]    = useState([]);
   const [materiales,   setMateriales]   = useState([]);
   const [compras,      setCompras]      = useState([]);
+  const [sapDatos,     setSapDatos]     = useState([]);
+  const [sapCargando,  setSapCargando]  = useState(true);
   const [loading,      setLoading]      = useState(true);
   const [tab,          setTab]          = useState('maquinas');
   const [dias,         setDias]         = useState(30);
   const [maquinaSel,   setMaquinaSel]   = useState(null);
   const [busqModal,    setBusqModal]    = useState('');
-  const [filtroCompra, setFiltroCompra] = useState('todas');
   const [sapModal,     setSapModal]     = useState(false);
   const [sapCopiado,   setSapCopiado]   = useState(false);
   const [diagMaqSel,   setDiagMaqSel]   = useState(null);
@@ -58,7 +59,12 @@ export default function Analisis({ perfil }) {
       snap => { setCompras(snap.docs.map(d => ({ id: d.id, ...d.data() }))); done(); },
       () => done()
     );
-    return () => { u1(); u2(); u3(); };
+    const u4 = onSnapshot(
+      query(collection(db, 'sap_sync'), orderBy('fecha', 'desc')),
+      snap => { setSapDatos(snap.docs.map(d => ({ id: d.id, ...d.data() }))); setSapCargando(false); },
+      () => setSapCargando(false)
+    );
+    return () => { u1(); u2(); u3(); u4(); };
   }, []);
 
   // ── Máquinas ────────────────────────────────────────────────────────────────
@@ -131,13 +137,6 @@ export default function Analisis({ perfil }) {
   }, [compras]);
 
   const maxProvTotal = proveedores[0]?.total || 1;
-
-  // ── Compras filtradas ────────────────────────────────────────────────────────
-  const comprasFiltradas = useMemo(() => {
-    if (filtroCompra === 'todas') return compras;
-    if (filtroCompra === 'urgencia') return compras.filter(c => c.urgencia === 'urgencia');
-    return compras.filter(c => c.estado === filtroCompra);
-  }, [compras, filtroCompra]);
 
   // ── Script SAP (CSV de órdenes en espera) ────────────────────────────────────
   const sapScript = useMemo(() => {
@@ -689,51 +688,63 @@ export default function Analisis({ perfil }) {
       ══════════════════════════════════════════════════════════════════════ */}
       {tab === 'compras' && (
         <div style={st.content}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
-            {/* Filtros */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {[['todas', 'Todas'], ['en espera', 'En Espera'], ['en proceso', 'En Proceso'], ['completado', 'Completadas'], ['urgencia', 'Urgentes']].map(([val, lbl]) => (
-                <button key={val} onClick={() => setFiltroCompra(val)}
-                  style={{ padding: '6px 14px', borderRadius: 20, border: `1.5px solid ${filtroCompra === val ? C.primary : C.border}`, background: filtroCompra === val ? C.primary : '#fff', color: filtroCompra === val ? '#fff' : C.textSecondary, fontSize: 12, fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s' }}>
-                  {lbl}
-                  {val !== 'todas' && <span style={{ marginLeft: 6, background: filtroCompra === val ? 'rgba(255,255,255,0.3)' : '#f1f5f9', borderRadius: 10, padding: '0 6px', fontSize: 11 }}>
-                    {val === 'urgencia' ? compras.filter(c => c.urgencia === 'urgencia').length : compras.filter(c => c.estado === val).length}
-                  </span>}
-                </button>
-              ))}
+          {/* Estado de conexión SAP */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: sapDatos.length > 0 ? '#f0fdf4' : '#fef3c7', border: `1.5px solid ${sapDatos.length > 0 ? '#16a34a' : '#d97706'}`, borderRadius: 12, padding: '8px 16px' }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: sapDatos.length > 0 ? '#16a34a' : '#d97706', boxShadow: sapDatos.length > 0 ? '0 0 6px #16a34a' : '0 0 6px #d97706' }} />
+                <span style={{ fontSize: 13, fontWeight: 800, color: sapDatos.length > 0 ? '#166534' : '#92400e' }}>
+                  {sapCargando ? 'Verificando conexión SAP...' : sapDatos.length > 0 ? `SAP Conectado — ${sapDatos.length} registros` : 'SAP no conectado'}
+                </span>
+              </div>
+              {sapDatos.length > 0 && (
+                <div style={{ fontSize: 12, color: '#64748b' }}>
+                  Última sincronización: {sapDatos[0]?.fecha?.toDate ? sapDatos[0].fecha.toDate().toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}
+                </div>
+              )}
             </div>
-            {/* Botón SAP */}
             <button onClick={() => setSapModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 20px', background: '#0070f3', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,112,243,0.3)' }}>
               <span>⚙️</span> Exportar Script SAP
             </button>
           </div>
 
-          {comprasFiltradas.length === 0 ? (
-            <div style={st.empty}><div style={{ fontSize: 40 }}>🛒</div><div>No hay compras en este filtro.</div></div>
+          {sapCargando ? (
+            <div style={st.empty}><div style={{ fontSize: 36 }}>⏳</div><div>Verificando conexión con SAP...</div></div>
+          ) : sapDatos.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 40px', background: '#fff', borderRadius: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: '2px dashed #e2e8f0' }}>
+              <div style={{ fontSize: 60, marginBottom: 16 }}>🔌</div>
+              <div style={{ fontSize: 18, fontWeight: 900, color: '#334155', marginBottom: 8 }}>SAP no conectado</div>
+              <div style={{ fontSize: 14, color: '#64748b', maxWidth: 420, margin: '0 auto', lineHeight: 1.6 }}>
+                Esta sección mostrará los datos de compras y órdenes cuando el script SAP esté conectado y sincronizando datos hacia la colección <code style={{ background: '#f1f5f9', padding: '1px 6px', borderRadius: 4, fontFamily: 'monospace', fontSize: 12 }}>sap_sync</code>.
+              </div>
+              <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center', fontSize: 13, color: '#94a3b8' }}>
+                <div>Mientras tanto, puedes exportar las órdenes en espera usando el botón <strong style={{ color: '#0070f3' }}>Exportar Script SAP</strong>.</div>
+              </div>
+            </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {comprasFiltradas.map(c => {
-                const eb    = ESTADO_BADGE[c.estado] || { bg: '#f8fafc', co: '#94a3b8', lbl: (c.estado || 'ESTADO').toUpperCase() };
-                const fecha = c.creadoEn?.toDate ? c.creadoEn.toDate().toLocaleDateString('es-CL') : '—';
-                const total = (c.cantidad || 0) * (c.costoEstimado || 0);
+              {sapDatos.map(item => {
+                const eb    = ESTADO_BADGE[item.estado] || { bg: '#f8fafc', co: '#94a3b8', lbl: (item.estado || 'SAP').toUpperCase() };
+                const fecha = item.fecha?.toDate ? item.fecha.toDate().toLocaleDateString('es-CL') : '—';
                 return (
-                  <div key={c.id} style={st.compraCard}>
+                  <div key={item.id} style={st.compraCard}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 14, fontWeight: 800, color: C.secondary }}>{c.nombre || c.producto || 'Sin nombre'}</span>
-                        {c.urgencia === 'urgencia' && <span style={{ background: '#fef2f2', color: '#ef4444', fontSize: 10, fontWeight: 800, padding: '1px 7px', borderRadius: 10 }}>🚨 URGENTE</span>}
+                        <span style={{ fontSize: 14, fontWeight: 800, color: C.secondary }}>{item.descripcion || item.nombre || item.producto || 'Sin nombre'}</span>
+                        {item.numeroOrden && <span style={{ background: '#eff6ff', color: '#3b82f6', fontSize: 10, fontWeight: 800, padding: '1px 7px', borderRadius: 10 }}>#{item.numeroOrden}</span>}
+                        {item.urgente === 'SI' && <span style={{ background: '#fef2f2', color: '#ef4444', fontSize: 10, fontWeight: 800, padding: '1px 7px', borderRadius: 10 }}>URGENTE</span>}
                       </div>
                       <div style={{ fontSize: 11, color: C.textLight, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                        <span>Cant: <strong>{c.cantidad}</strong> {c.unidad || 'UND'}</span>
-                        {c.proveedor && <span>🏭 {c.proveedor}</span>}
-                        {c.maquina && <span>🔧 {c.maquina}</span>}
-                        <span>👤 {c.usuario || '—'}</span>
+                        {item.cantidad && <span>Cant: <strong>{item.cantidad}</strong> {item.unidad || 'UND'}</span>}
+                        {item.proveedor && <span>🏭 {item.proveedor}</span>}
+                        {item.maquina && item.maquina !== 'STOCK' && <span>🔧 {item.maquina}</span>}
+                        {item.codigoMaterial && <span>COD: {item.codigoMaterial}</span>}
                         <span>📅 {fecha}</span>
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0, marginLeft: 16 }}>
                       <div style={{ background: eb.bg, color: eb.co, borderRadius: 20, padding: '3px 12px', fontSize: 10, fontWeight: 800 }}>{eb.lbl}</div>
-                      {total > 0 && <div style={{ fontSize: 15, fontWeight: 900, color: C.secondary }}>{fmt$(total)}</div>}
+                      {item.monto > 0 && <div style={{ fontSize: 15, fontWeight: 900, color: C.secondary }}>{fmt$(item.monto)}</div>}
                     </div>
                   </div>
                 );
