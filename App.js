@@ -31,10 +31,11 @@ import AnalisisMateriales  from './src/pages/AnalisisMateriales';
 import ReservaMaterial     from './src/pages/ReservaMaterial';
 import Historial           from './src/pages/Historial';
 import SolicitudMateriales from './src/pages/SolicitudMateriales';
-import PanolInicio  from './src/pages/PanolInicio';
-import PanolCompras from './src/pages/PanolCompras';
-import PanolRetiros from './src/pages/PanolRetiros';
-import PanolPerfil  from './src/pages/PanolPerfil';
+import PanolInicio     from './src/pages/PanolInicio';
+import PanolCompras    from './src/pages/PanolCompras';
+import PanolRetiros    from './src/pages/PanolRetiros';
+import PanolPerfil     from './src/pages/PanolPerfil';
+import GestionUsuarios from './src/pages/GestionUsuarios';
 
 
 const PAGINAS = {
@@ -65,6 +66,7 @@ const PAGINAS = {
   panolCompras:        PanolCompras,
   panolRetiros:        PanolRetiros,
   perfil:              PanolPerfil,
+  gestionUsuarios:     GestionUsuarios,
 };
 
 
