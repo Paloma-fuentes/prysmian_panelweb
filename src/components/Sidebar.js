@@ -38,7 +38,6 @@ const MENU = [
   { id: 'adminEstrategico',    label: 'Inteligencia Jefatura',   icon: '🧠', roles: ['admin'] },
   { id: 'gestionActivos',      label: 'Activos y Herramientas',  icon: '🧰', roles: ['admin'] },
   { id: 'analisisProveedores', label: 'Análisis de Compras',     icon: '🛒', roles: ['admin'] },
-  { id: 'gestionUsuarios',     label: 'Gestión de Usuarios',     icon: '👥', roles: ['admin'] },
   { id: 'importar',            label: 'Gestión Masiva',          icon: '📁', roles: ['admin'] },
 ];
 
