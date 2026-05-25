@@ -6,10 +6,21 @@ import { importarHistorialLote } from '../services/historialService';
 import { serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
-export default function ImportarExcel() {
+export default function ImportarExcel({ perfil }) {
+  const puedeEditar = (perfil?.rol || '').toLowerCase() === 'panol';
   const [progreso, setProgreso] = useState(null);
   const [log, setLog] = useState([]);
   const [procesando, setProcesando] = useState(false);
+
+  if (!puedeEditar) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+      <div style={{ textAlign: 'center', color: '#94a3b8' }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
+        <div style={{ fontSize: 16, fontWeight: 700 }}>Acceso restringido</div>
+        <div style={{ fontSize: 13, marginTop: 8 }}>Solo el rol Pañol puede gestionar importaciones masivas.</div>
+      </div>
+    </div>
+  );
 
   function addLog(msg, tipo = 'info') {
     setLog(l => [...l, { msg, tipo, t: new Date().toLocaleTimeString() }]);

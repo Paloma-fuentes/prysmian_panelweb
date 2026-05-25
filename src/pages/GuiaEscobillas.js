@@ -15,8 +15,9 @@ function normalizar(str) {
 }
 
 export default function GuiaEscobillas({ perfil }) {
-  const rol = (perfil?.rol || '').toLowerCase();
-  const esAdmin = rol === 'admin' || rol === 'administrador' || rol === 'panol';
+  const rol         = (perfil?.rol || '').toLowerCase();
+  const esAdmin     = rol === 'admin' || rol === 'administrador' || rol === 'panol';
+  const puedeEditar = rol === 'panol';
 
   const [grupos,      setGrupos]      = useState([]);
   const [loading,     setLoading]     = useState(true);
@@ -128,7 +129,7 @@ export default function GuiaEscobillas({ perfil }) {
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <div style={s.badge}>{gruposFiltrados.length} máquinas · {totalEscobillas} escobillas</div>
-          {esAdmin && (
+          {puedeEditar && (
             <button style={s.btnAdd} onClick={abrirAgregar}>+ Agregar escobilla</button>
           )}
         </div>
@@ -194,7 +195,7 @@ export default function GuiaEscobillas({ perfil }) {
                           {(item.voltaje || item.amperaje) && <DetRow icon="🔋" text={[item.voltaje && `${item.voltaje}V`, item.amperaje && `${item.amperaje}A`].filter(Boolean).join(' · ')} />}
                           {item.ubicacion && <DetRow icon="📍" text={`Bodega: ${item.ubicacion}`} color="#f97316" />}
                           {item.detalles && <DetRow icon="📄" text={item.detalles} />}
-                          {esAdmin && (
+                          {puedeEditar && (
                             <div style={s.adminRow}>
                               <button style={s.btnEdit} onClick={() => abrirEditar(item)}>✏️ Editar</button>
                               <button style={s.btnDel}  onClick={() => handleEliminar(item)}>🗑️ Eliminar</button>

@@ -27,8 +27,9 @@ function detectarMaquina(texto, maquinaActual) {
 }
 
 export default function GuiaCorreas({ perfil }) {
-  const rol     = (perfil?.rol || '').toLowerCase();
-  const esAdmin = rol === 'admin' || rol === 'administrador' || rol === 'panol';
+  const rol         = (perfil?.rol || '').toLowerCase();
+  const esAdmin     = rol === 'admin' || rol === 'administrador' || rol === 'panol';
+  const puedeEditar = rol === 'panol';
 
   const [grupos,     setGrupos]     = useState([]);
   const [loading,    setLoading]    = useState(true);
@@ -187,7 +188,7 @@ export default function GuiaCorreas({ perfil }) {
                     <CorreaCard
                       key={correa.id}
                       correa={correa}
-                      esAdmin={esAdmin}
+                      esAdmin={puedeEditar}
                       onEdit={() => abrirEditar(correa)}
                       onDelete={() => handleEliminar(correa)}
                     />

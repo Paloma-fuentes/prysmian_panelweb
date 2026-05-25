@@ -78,8 +78,9 @@ export default function Dashboard({ navegar, perfil }) {
   const [invSnap, setInvSnap]       = useState({ total: 0, conStock: 0, sinStock: 0, bajoStock: 0, items: [] });
   const [ultMovs, setUltMovs]       = useState([]);
 
-  const rolActual = (perfil?.rol || '').toLowerCase();
-  const esAdmin = rolActual === 'admin' || rolActual === 'panol' || rolActual === 'administrador';
+  const rolActual   = (perfil?.rol || '').toLowerCase();
+  const esAdmin     = rolActual === 'admin' || rolActual === 'panol' || rolActual === 'administrador';
+  const puedeEditar = rolActual === 'panol';
 
   async function handleSolicitudAutomatica(sug) {
     if (!window.confirm(`¿Generar solicitud de compra automática para "${sug.nombre}"?`)) return;
@@ -213,7 +214,7 @@ export default function Dashboard({ navegar, perfil }) {
             </p>
             <div style={{ textAlign: 'right', color: '#86868b', fontSize: 11 }}>— Equipo Prysmian</div>
 
-            {esAdmin && (
+            {puedeEditar && (
               <div style={{ marginTop: 16, borderTop: `1px solid ${C.border}`, paddingTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 11, fontWeight: 800, color: C.textSecondary }}>AUDITORÍA DE CONTEO</span>
                 <button
@@ -242,7 +243,7 @@ export default function Dashboard({ navegar, perfil }) {
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#92400e' }}>{sug.nombre}</div>
                       <div style={{ fontSize: 11, color: '#b45309' }}>Stock: {sug.stock} / Mín: {sug.min}</div>
                     </div>
-                    {esAdmin && (
+                    {puedeEditar && (
                       <button onClick={() => handleSolicitudAutomatica(sug)} style={{ fontSize: 11, fontWeight: 700, background: C.primary, color: '#fff', border: 'none', borderRadius: 8, padding: '6px 10px', cursor: 'pointer' }}>
                         Solicitar
                       </button>

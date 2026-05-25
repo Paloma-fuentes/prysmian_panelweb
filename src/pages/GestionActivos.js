@@ -9,8 +9,9 @@ const CATEGORIAS = ['Eléctrica', 'Mecánica', 'Medición', 'Seguridad', 'Otra']
 const FORM_VACIO = { nombre: '', descripcion: '', categoria: 'Otra', ubicacion: '', cantidadTotal: '1' };
 
 export default function GestionActivos({ perfil, user }) {
-  const rol = (perfil?.rol || '').toLowerCase();
-  const esAdmin = rol === 'admin' || rol === 'administrador' || rol === 'panol';
+  const rol         = (perfil?.rol || '').toLowerCase();
+  const esAdmin     = rol === 'admin' || rol === 'administrador' || rol === 'panol';
+  const puedeEditar = rol === 'panol';
 
   const [herramientas,  setHerramientas]  = useState([]);
   const [loading,       setLoading]       = useState(true);
@@ -120,7 +121,7 @@ export default function GestionActivos({ perfil, user }) {
           <div style={{ ...s.kpiChip, background: '#fee2e2', color: '#dc2626' }}>
             ⟳ {totalEnUso} en uso
           </div>
-          {esAdmin && (
+          {puedeEditar && (
             <button style={s.btnAdd} onClick={abrirAgregar}>+ Agregar herramienta</button>
           )}
         </div>
@@ -149,7 +150,7 @@ export default function GestionActivos({ perfil, user }) {
           <div style={s.empty}>
             <div style={{ fontSize: 40 }}>🧰</div>
             <div>{busqueda ? 'Sin resultados.' : 'No hay herramientas registradas aún.'}</div>
-            {esAdmin && !busqueda && (
+            {puedeEditar && !busqueda && (
               <button style={s.btnAdd} onClick={abrirAgregar}>+ Agregar la primera</button>
             )}
           </div>
@@ -215,7 +216,7 @@ export default function GestionActivos({ perfil, user }) {
                   {!hayDisp && !miPrestamo && (
                     <span style={s.btnOcupado}>🔒 Todas las unidades en uso</span>
                   )}
-                  {esAdmin && (
+                  {puedeEditar && (
                     <div style={{ display: 'flex', gap: 6, marginLeft: 'auto' }}>
                       <button style={s.btnEdit} onClick={() => abrirEditar(h)}>✏️</button>
                       <button style={s.btnDel}  onClick={() => handleEliminar(h)}>🗑️</button>
