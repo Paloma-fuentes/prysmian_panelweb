@@ -14,6 +14,7 @@ const MENU = [
   { id: 'mapaBodega',          label: 'Mapa de Bodega',          icon: '🗺️', roles: ['panol'] },
   { id: 'historial',           label: 'Historial Movimientos',   icon: '📜', roles: ['panol'] },
   { id: 'analisis',            label: 'Análisis del Mes',        icon: '📈', roles: ['panol'] },
+  { id: 'gestionUsuarios',     label: 'Gestión de Usuarios',     icon: '👥', roles: ['panol'] },
   { id: 'perfil',              label: 'Mi Perfil',               icon: '👤', roles: ['panol'] },
 
   // ── Mantencion / Planta / Externos ───────────────────────────
