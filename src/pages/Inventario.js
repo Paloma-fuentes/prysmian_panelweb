@@ -264,9 +264,10 @@ export default function Inventario({ filtroInicial = 'todos', perfil }) {
   const [showAdd,        setShowAdd]        = useState(false);
   const [guardandoNuevo, setGuardandoNuevo] = useState(false);
 
-  const rolActual = (perfil?.rol || '').toLowerCase();
-  const esAdmin   = rolActual === 'admin' || rolActual === 'panol' || rolActual === 'administrador';
-  const POR_PAG   = 50;
+  const rolActual   = (perfil?.rol || '').toLowerCase();
+  const esAdmin     = rolActual === 'admin' || rolActual === 'panol' || rolActual === 'administrador';
+  const puedeEditar = rolActual === 'panol';
+  const POR_PAG     = 50;
 
   useEffect(() => { setFiltro(filtroInicial); }, [filtroInicial]);
 
@@ -393,7 +394,7 @@ export default function Inventario({ filtroInicial = 'todos', perfil }) {
             <>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {paginados.map(m => (
-                  <MaterialCard key={m.id} m={m} esAdmin={esAdmin} onEdit={setEditando} onDelete={handleEliminar} />
+                  <MaterialCard key={m.id} m={m} esAdmin={puedeEditar} onEdit={setEditando} onDelete={handleEliminar} />
                 ))}
                 {paginados.length === 0 && (
                   <div style={{ textAlign: 'center', padding: 80, color: '#94a3b8' }}>
@@ -424,7 +425,7 @@ export default function Inventario({ filtroInicial = 'todos', perfil }) {
           </div>
 
           {/* Agregar nuevo repuesto */}
-          {esAdmin && (
+          {puedeEditar && (
             <div style={s.addBox}>
               <button onClick={() => setShowAdd(v => !v)} style={s.addHeader}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -444,7 +445,7 @@ export default function Inventario({ filtroInicial = 'todos', perfil }) {
           {/* Lista recientes */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
             {recientes.map(m => (
-              <MaterialCard key={m.id} m={m} esAdmin={esAdmin} onEdit={setEditando} onDelete={handleEliminar} />
+              <MaterialCard key={m.id} m={m} esAdmin={puedeEditar} onEdit={setEditando} onDelete={handleEliminar} />
             ))}
           </div>
         </div>
