@@ -17,23 +17,30 @@ const MENU = [
   { id: 'gestionUsuarios',     label: 'Gestión de Usuarios',     icon: '👥', roles: ['panol'] },
   { id: 'perfil',              label: 'Mi Perfil',               icon: '👤', roles: ['panol'] },
 
-  // ── Mantencion / Planta / Externos ───────────────────────────
-  { id: 'retiroDirecto',       label: 'Retiro',                  icon: '📤', roles: ['mantencion', 'planta', 'externos'] },
-  { id: 'reservaMaterial',     label: 'Reserva Urgente',         icon: '🔴', roles: ['mantencion', 'planta', 'externos'] },
-  { id: 'solicitudes',         label: 'Mis Retiros',             icon: '📋', roles: ['mantencion', 'planta', 'externos'] },
+  // ── Mantencion ───────────────────────────────────────────────
+  { id: 'mantencionInicio',    label: 'Inicio',                  icon: '🏠', roles: ['mantencion'] },
+  { id: 'retiroDirecto',       label: 'Retiro',                  icon: '📤', roles: ['mantencion'] },
+  { id: 'crearCompra',         label: 'Solicitar',               icon: '🛒', roles: ['mantencion'] },
+  { id: 'solicitudesCompra',   label: 'Mis Compras',             icon: '📋', roles: ['mantencion'] },
+  { id: 'conteo',              label: 'Conteo',                  icon: '📋', roles: ['mantencion'] },
+  { id: 'mantencionPerfil',    label: 'Mi Perfil',               icon: '👤', roles: ['mantencion'] },
+
+  // ── Planta / Externos ─────────────────────────────────────────
+  { id: 'retiroDirecto',       label: 'Retiro',                  icon: '📤', roles: ['planta', 'externos'] },
+  { id: 'reservaMaterial',     label: 'Reserva Urgente',         icon: '🔴', roles: ['planta', 'externos'] },
+  { id: 'solicitudes',         label: 'Mis Retiros',             icon: '📋', roles: ['planta', 'externos'] },
   { id: 'miConsumo',           label: 'Mi Consumo',              icon: '📊', roles: ['planta', 'externos'] },
-  { id: 'solicitudMateriales', label: 'Reportar Faltante',       icon: '🚨', roles: ['mantencion', 'planta', 'externos'] },
-  { id: 'crearCompra',         label: 'Solicitar Compra',        icon: '🛒', roles: ['mantencion', 'planta', 'externos'] },
-  { id: 'solicitudesCompra',   label: 'Mis Compras',             icon: '📋', roles: ['mantencion', 'planta', 'externos'] },
-  { id: 'conteo',              label: 'Conteo Inventario',       icon: '📋', roles: ['mantencion'] },
+  { id: 'solicitudMateriales', label: 'Reportar Faltante',       icon: '🚨', roles: ['planta', 'externos'] },
+  { id: 'crearCompra',         label: 'Solicitar Compra',        icon: '🛒', roles: ['planta', 'externos'] },
+  { id: 'solicitudesCompra',   label: 'Mis Compras',             icon: '📋', roles: ['planta', 'externos'] },
 
   // ── Admin (operación) ─────────────────────────────────────────
   { id: 'mapaBodega',          label: 'Mapa de Bodega',          icon: '🗺️', roles: ['admin'] },
   { id: 'conteo',              label: 'Conteo Inventario',       icon: '📋', roles: ['admin'] },
   { id: 'historial',           label: 'Historial Movimientos',   icon: '📜', roles: ['admin'] },
-  { id: 'guiaCorreas',         label: 'Guía de Correas',         icon: '⛓️', roles: ['admin', 'mantencion'] },
-  { id: 'guiaEscobillas',      label: 'Guía de Escobillas',      icon: '⚡', roles: ['admin', 'mantencion'] },
-  { id: 'analisis',            label: 'Dashboard Máquinas',      icon: '📊', roles: ['admin', 'mantencion'] },
+  { id: 'guiaCorreas',         label: 'Guía de Correas',         icon: '⛓️', roles: ['admin'] },
+  { id: 'guiaEscobillas',      label: 'Guía de Escobillas',      icon: '⚡', roles: ['admin'] },
+  { id: 'analisis',            label: 'Dashboard Máquinas',      icon: '📊', roles: ['admin'] },
   { id: 'analisisConsumo',     label: 'Análisis de Consumo',     icon: '🔬', roles: ['admin'] },
   { id: 'adminEstrategico',    label: 'Inteligencia Jefatura',   icon: '🧠', roles: ['admin'] },
   { id: 'gestionActivos',      label: 'Activos y Herramientas',  icon: '🧰', roles: ['admin'] },
@@ -50,7 +57,7 @@ export default function Sidebar({ pagina, setPagina, navegar, onLogout, perfil, 
   const menuFiltrado = MENU.filter(item => {
     if (!item.roles.includes(rolActual)) return false;
     // Conteo para mantención solo visible cuando la sesión está activa
-    if (item.id === 'conteo' && rolActual === 'mantencion') return sesionActiva;
+    if (item.id === 'conteo' && (rolActual === 'mantencion')) return sesionActiva;
     return true;
   });
 

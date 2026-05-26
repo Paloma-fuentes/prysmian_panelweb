@@ -31,11 +31,13 @@ import AnalisisMateriales  from './src/pages/AnalisisMateriales';
 import ReservaMaterial     from './src/pages/ReservaMaterial';
 import Historial           from './src/pages/Historial';
 import SolicitudMateriales from './src/pages/SolicitudMateriales';
-import PanolInicio     from './src/pages/PanolInicio';
-import PanolCompras    from './src/pages/PanolCompras';
-import PanolRetiros    from './src/pages/PanolRetiros';
-import PanolPerfil     from './src/pages/PanolPerfil';
-import GestionUsuarios from './src/pages/GestionUsuarios';
+import PanolInicio        from './src/pages/PanolInicio';
+import PanolCompras       from './src/pages/PanolCompras';
+import PanolRetiros       from './src/pages/PanolRetiros';
+import PanolPerfil        from './src/pages/PanolPerfil';
+import GestionUsuarios    from './src/pages/GestionUsuarios';
+import MantencionInicio   from './src/pages/MantencionInicio';
+import MantencionPerfil   from './src/pages/MantencionPerfil';
 
 
 const PAGINAS = {
@@ -67,6 +69,8 @@ const PAGINAS = {
   panolRetiros:        PanolRetiros,
   perfil:              PanolPerfil,
   gestionUsuarios:     GestionUsuarios,
+  mantencionInicio:    MantencionInicio,
+  mantencionPerfil:    MantencionPerfil,
 };
 
 
@@ -96,9 +100,15 @@ export default function App() {
           const p = await getPerfilUsuario(u.uid);
           setPerfil(p);
           setUser(u);
+          const rol = (p?.rol || '').toLowerCase();
+          if (rol === 'mantencion' || rol === 'planta' || rol === 'externos') {
+            setPagina(rol === 'mantencion' ? 'mantencionInicio' : 'retiroDirecto');
+          } else if (rol === 'panol') {
+            setPagina('panolInicio');
+          }
         } catch (e) {
           console.error("Error al obtener perfil:", e);
-          setUser(u); // Al menos dejamos al usuario logueado
+          setUser(u);
         }
       } else {
         setPerfil(null);
