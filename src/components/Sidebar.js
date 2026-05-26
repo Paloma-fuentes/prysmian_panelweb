@@ -56,8 +56,6 @@ export default function Sidebar({ pagina, setPagina, navegar, onLogout, perfil, 
 
   const menuFiltrado = MENU.filter(item => {
     if (!item.roles.includes(rolActual)) return false;
-    // Conteo para mantención solo visible cuando la sesión está activa
-    if (item.id === 'conteo' && (rolActual === 'mantencion')) return sesionActiva;
     return true;
   });
 
