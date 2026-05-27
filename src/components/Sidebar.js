@@ -4,6 +4,7 @@ const MENU = [
   // ── Admin ────────────────────────────────────────────────────
   { id: 'dashboard',           label: 'Inicio',                  icon: '🏠', roles: ['admin'] },
   { id: 'inventario',          label: 'Inventario',              icon: '📦', roles: ['admin', 'mantencion', 'planta', 'externos'] },
+  { id: 'analisisMateriales',  label: 'Análisis del Mes',        icon: '📈', roles: ['admin'] },
 
   // ── Pañol — menú propio ───────────────────────────────────────
   { id: 'panolInicio',         label: 'Inicio',                  icon: '🏠', roles: ['panol'] },
@@ -12,6 +13,7 @@ const MENU = [
   { id: 'panolRetiros',        label: 'Control de Retiros',      icon: '📤', roles: ['panol'] },
   { id: 'mapaBodega',          label: 'Mapa de Bodega',          icon: '🗺️', roles: ['panol'] },
   { id: 'historial',           label: 'Historial Movimientos',   icon: '📜', roles: ['panol'] },
+  { id: 'analisis',            label: 'Análisis del Mes',        icon: '📈', roles: ['panol'] },
   { id: 'gestionUsuarios',     label: 'Gestión de Usuarios',     icon: '👥', roles: ['panol'] },
   { id: 'perfil',              label: 'Mi Perfil',               icon: '👤', roles: ['panol'] },
 
